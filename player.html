@@ -561,13 +561,28 @@
         return;
       }
 
+      // Find Tamil track if available
+      let tamilTrackIndex = audioTracks.findIndex(track => {
+        const lang = track.language ? track.language.toLowerCase() : '';
+        return lang.startsWith('tam') || lang === 'ta';
+      });
+
+      // If Tamil not found, use first track
+      if (tamilTrackIndex === -1) {
+        tamilTrackIndex = 0;
+      }
+
+      // Set Tamil (or first) as default
+      const defaultTrack = audioTracks[tamilTrackIndex];
+      player.selectAudioLanguage(defaultTrack.language, defaultTrack.role);
+
       audioMenu.innerHTML = '';
       audioTracks.forEach((track, index) => {
         const item = document.createElement('div');
         item.className = 'dropdown-item';
         const langName = getLanguageName(track.language);
         item.textContent = langName + (track.role ? ` (${track.role})` : '');
-        if (index === 0) item.classList.add('active');
+        if (index === tamilTrackIndex) item.classList.add('active');
         
         item.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -588,9 +603,9 @@
         showControls();
       });
 
-      if (audioTracks.length > 0) {
-        audioBtn.textContent = `Audio: ${getLanguageName(audioTracks[0].language)}`;
-      }
+      // Set button text to default language
+      const defaultLangName = getLanguageName(defaultTrack.language);
+      audioBtn.textContent = `Audio: ${defaultLangName}`;
     }
 
     function setupVideoTrackControl() {
