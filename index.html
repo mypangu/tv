@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>PanguTV Live</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #0b0c10 0%, #1a1d29 100%);
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      padding: 15px 20px;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+      z-index: 1000;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: #66fcf1;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    input {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 2px solid #45a29e;
+      outline: none;
+      font-size: 0.95rem;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      transition: all 0.3s;
+      min-width: 200px;
+      flex: 1;
+      max-width: 300px;
+    }
+
+    input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    input:focus {
+      border-color: #66fcf1;
+      background: rgba(255,255,255,0.15);
+    }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
+      border: none;
+      color: #0b0c10;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(102, 252, 241, 0.3);
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 252, 241, 0.4);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+
+    .refresh-btn.loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .refresh-icon {
+      animation: none;
+    }
+
+    .refresh-btn.loading .refresh-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .stats {
+      margin-bottom: 20px;
+      color: #66fcf1;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .channel {
+      background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+      border-radius: 12px;
+      text-align: center;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .channel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(102, 252, 241, 0.1) 0%, rgba(69, 162, 158, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .channel:hover::before {
+      opacity: 1;
+    }
+
+    .channel:hover {
+      border-color: #45a29e;
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 252, 241, 0.2);
+    }
+
+    .channel-logo-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      background: #000;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .channel img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+
+    .channel span {
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: block;
+      position: relative;
+      z-index: 1;
+      line-height: 1.3;
+    }
+
+    .loading-more {
+      text-align: center;
+      padding: 40px 20px;
+      color: #66fcf1;
+      font-size: 1.1rem;
+    }
+
+    .spinner {
+      border: 3px solid rgba(102, 252, 241, 0.2);
+      border-top: 3px solid #66fcf1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,255,255,0.6);
+      font-size: 1.1rem;
+    }
+
+    @media (max-width: 768px) {
+      header h1 {
+        font-size: 1.3rem;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 15px;
+      }
+
+      input {
+        min-width: 150px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      header {
+        padding: 12px 15px;
+      }
+
+      header h1 {
+        font-size: 1.2rem;
+        width: 100%;
+      }
+
+      .header-controls {
+        width: 100%;
+      }
+
+      input {
+        max-width: 100%;
+      }
+
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📺 PanguTV Live</h1>
+    <div class="header-controls">
+      <input type="text" id="search" placeholder="Search channels..." />
+      <button class="refresh-btn" id="refreshBtn">
+        <span class="refresh-icon">↻</span>
+        <span>Refresh</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="stats" id="stats">Loading channels...</div>
+    <div id="channels" class="grid"></div>
+    <div class="loading-more" id="loadingMore" style="display: none;">
+      <div class="spinner"></div>
+      Loading more channels...
+    </div>
+    <div class="no-results" id="noResults" style="display: none;">
+      No channels found matching your search.
+    </div>
+  </div>
+
+  <script>
+    let allChannels = [];
+    let filteredChannels = [];
+    let displayedCount = 0;
+    const BATCH_SIZE = 20;
+    let isLoading = false;
+    let searchQuery = '';
+
+    function normalizeName(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    }
+
+    async function loadChannels(forceRefresh = false) {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.classList.add('loading');
+      
+      try {
+        const url = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
+        const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
+        allChannels = await res.json();
+        allChannels = allChannels.filter(ch => ch.name && ch.link);
+        
+        filteredChannels = allChannels;
+        displayedCount = 0;
+        document.getElementById('channels').innerHTML = '';
+        
+        updateStats();
+        loadMoreChannels();
+      } catch (error) {
+        console.error('Error loading channels:', error);
+        document.getElementById('stats').textContent = 'Error loading channels. Please try again.';
+      } finally {
+        refreshBtn.classList.remove('loading');
+      }
+    }
+
+    function updateStats() {
+      const stats = document.getElementById('stats');
+      if (searchQuery) {
+        stats.textContent = `Found ${filteredChannels.length} of ${allChannels.length} channels`;
+      } else {
+        stats.textContent = `${allChannels.length} channels available`;
+      }
+    }
+
+    function renderChannels(channels) {
+      const container = document.getElementById('channels');
+      const fragment = document.createDocumentFragment();
+
+      channels.forEach(ch => {
+        const id = normalizeName(ch.name);
+        const div = document.createElement('div');
+        div.className = 'channel';
+        div.innerHTML = `
+          <div class="channel-logo-wrapper">
+            <img src="${ch.logo || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'40\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E'}" alt="${ch.name}" loading="lazy">
+          </div>
+          <span>${ch.name}</span>
+        `;
+        div.addEventListener('click', () => {
+          window.location.href = `player.html?id=${id}`;
+        });
+        fragment.appendChild(div);
+      });
+
+      container.appendChild(fragment);
+    }
+
+    function loadMoreChannels() {
+      if (isLoading || displayedCount >= filteredChannels.length) {
+        document.getElementById('loadingMore').style.display = 'none';
+        return;
+      }
+
+      isLoading = true;
+      document.getElementById('loadingMore').style.display = 'block';
+
+      setTimeout(() => {
+        const nextBatch = filteredChannels.slice(displayedCount, displayedCount + BATCH_SIZE);
+        renderChannels(nextBatch);
+        displayedCount += nextBatch.length;
+        isLoading = false;
+
+        if (displayedCount >= filteredChannels.length) {
+          document.getElementById('loadingMore').style.display = 'none';
+        }
+
+        updateNoResults();
+      }, 300);
+    }
+
+    function updateNoResults() {
+      const noResults = document.getElementById('noResults');
+      const channels = document.getElementById('channels');
+      
+      if (filteredChannels.length === 0 && searchQuery) {
+        noResults.style.display = 'block';
+        channels.style.display = 'none';
+      } else {
+        noResults.style.display = 'none';
+        channels.style.display = 'grid';
+      }
+    }
+
+    function handleSearch(val) {
+      searchQuery = val;
+      filteredChannels = allChannels.filter(ch => 
+        ch.name.toLowerCase().includes(val.toLowerCase())
+      );
+      displayedCount = 0;
+      document.getElementById('channels').innerHTML = '';
+      updateStats();
+      loadMoreChannels();
+    }
+
+    // Search with debounce
+    let searchTimeout;
+    document.getElementById('search').addEventListener('input', (e) => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        handleSearch(e.target.value);
+      }, 300);
+    });
+
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadChannels(true);
+    });
+
+    // Infinite scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+          loadMoreChannels();
+        }
+      }, 100);
+    });
+
+    // Initial load
+    loadChannels();
+  </script>
+</body>
+</html>
