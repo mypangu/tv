@@ -38,11 +38,11 @@
       box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
       z-index: 2000;
       flex-shrink: 0;
+      transition: transform 0.3s;
     }
 
     header.hidden {
       transform: translateY(-100%);
-      transition: transform 0.3s;
     }
 
     header img {
@@ -99,22 +99,12 @@
       height: 100%;
       background: #000;
       outline: none;
-      object-fit: contain;
+      display: block;
     }
 
     video.fit { object-fit: contain; }
     video.fill { object-fit: cover; }
     video.crop { object-fit: fill; }
-
-    /* Hide default controls in fullscreen to show custom ones */
-    .player-wrapper.fullscreen video::-webkit-media-controls {
-      display: none !important;
-    }
-
-    .player-wrapper.fullscreen video {
-      -webkit-media-controls: none;
-      -moz-media-controls: none;
-    }
 
     .loading {
       position: absolute;
@@ -156,7 +146,7 @@
       opacity: 0;
       visibility: hidden;
       transition: opacity 0.3s, visibility 0.3s;
-      z-index: 1000;
+      z-index: 1500;
       pointer-events: none;
     }
 
@@ -166,7 +156,7 @@
       pointer-events: auto;
     }
 
-    .player-wrapper.fullscreen .controls-overlay {
+    .player-wrapper.in-fullscreen .controls-overlay {
       padding: 30px 20px;
     }
 
@@ -257,7 +247,7 @@
       display: none;
     }
 
-    .player-wrapper.fullscreen .fullscreen-controls {
+    .player-wrapper.in-fullscreen .fullscreen-controls {
       display: block;
     }
 
@@ -318,7 +308,7 @@
     }
 
     @media (orientation: landscape) {
-      body:not(.manual-portrait) video {
+      body:not(.manual-scale) video {
         object-fit: fill !important;
       }
     }
@@ -351,7 +341,7 @@
   </header>
 
   <div class="player-wrapper" id="playerWrapper">
-    <video id="video" autoplay controls playsinline></video>
+    <video id="video" autoplay playsinline webkit-playsinline></video>
     
     <div class="loading" id="loading">
       <div class="spinner"></div>
@@ -405,6 +395,7 @@
     let currentScale = 'crop';
     let controlsTimeout;
     let isControlsVisible = false;
+    let isInFullscreen = false;
 
     const languageMap = {
       'tam': 'Tamil', 'tel': 'Telugu', 'mal': 'Malayalam', 'kan': 'Kannada',
@@ -425,16 +416,23 @@
       error.style.display = 'block';
     }
 
-    // Auto-hide controls
+    function updateControlsVisibility() {
+      const video = document.getElementById('video');
+      
+      if (isInFullscreen) {
+        // In fullscreen, hide native controls, show custom
+        video.removeAttribute('controls');
+      } else {
+        // Not in fullscreen, show native controls
+        video.setAttribute('controls', 'controls');
+      }
+    }
+
     function showControls() {
       const overlay = document.getElementById('controlsOverlay');
-      const video = document.getElementById('video');
       
       overlay.classList.add('visible');
       isControlsVisible = true;
-      
-      // Show native controls too
-      video.setAttribute('controls', 'controls');
       
       clearTimeout(controlsTimeout);
       controlsTimeout = setTimeout(() => {
@@ -444,22 +442,15 @@
 
     function hideControls() {
       const overlay = document.getElementById('controlsOverlay');
-      const playerWrapper = document.getElementById('playerWrapper');
       
       // Don't hide if a dropdown is open
       if (document.querySelector('.dropdown-menu.show')) {
-        showControls(); // Reset timer
+        showControls();
         return;
       }
       
       overlay.classList.remove('visible');
       isControlsVisible = false;
-      
-      // In fullscreen, hide native controls too
-      if (playerWrapper.classList.contains('fullscreen')) {
-        const video = document.getElementById('video');
-        video.removeAttribute('controls');
-      }
     }
 
     function toggleControls() {
@@ -470,38 +461,36 @@
       }
     }
 
-    // Touch/click handler for player
     function setupPlayerInteraction() {
       const playerWrapper = document.getElementById('playerWrapper');
       const video = document.getElementById('video');
       
+      // Click/tap to toggle controls (only in fullscreen)
       playerWrapper.addEventListener('click', (e) => {
-        // Don't toggle if clicking on a control
+        if (!isInFullscreen) return;
         if (e.target.closest('.controls-overlay')) return;
         toggleControls();
       });
 
       video.addEventListener('play', () => {
-        showControls();
+        if (isInFullscreen) showControls();
       });
 
       video.addEventListener('pause', () => {
-        showControls();
+        if (isInFullscreen) showControls();
       });
 
-      // Mouse move shows controls
       playerWrapper.addEventListener('mousemove', () => {
-        showControls();
+        if (isInFullscreen) showControls();
       });
 
-      // Keep controls visible when hovering over them
       const overlay = document.getElementById('controlsOverlay');
       overlay.addEventListener('mouseenter', () => {
         clearTimeout(controlsTimeout);
       });
 
       overlay.addEventListener('mouseleave', () => {
-        showControls(); // Restart timer
+        if (isInFullscreen) showControls();
       });
     }
 
@@ -662,7 +651,6 @@
       const scaleBtn = document.getElementById('scaleBtn');
       const scaleMenu = document.getElementById('scaleMenu');
 
-      // Set initial scale to stretch
       video.className = 'crop';
       scaleBtn.textContent = 'Scale: Stretch';
 
@@ -673,11 +661,10 @@
           video.className = scale;
           currentScale = scale;
           
-          // Mark body if manually set to portrait mode
-          if (scale === 'fit' || scale === 'fill') {
-            document.body.classList.add('manual-portrait');
+          if (scale !== 'crop') {
+            document.body.classList.add('manual-scale');
           } else {
-            document.body.classList.remove('manual-portrait');
+            document.body.classList.remove('manual-scale');
           }
           
           const label = scale.charAt(0).toUpperCase() + scale.slice(1);
@@ -703,58 +690,73 @@
       });
     }
 
-    function setupFullscreen() {
+    function enterFullscreen() {
       const playerWrapper = document.getElementById('playerWrapper');
       const fullscreenBtn = document.getElementById('fullscreenBtn');
-      const video = document.getElementById('video');
       const header = document.getElementById('header');
 
-      fullscreenBtn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (!document.fullscreenElement) {
-          try {
-            await playerWrapper.requestFullscreen();
-            playerWrapper.classList.add('fullscreen');
-            fullscreenBtn.textContent = 'Exit Fullscreen';
-            header.classList.add('hidden');
-            video.removeAttribute('controls');
-            showControls();
-          } catch (err) {
-            console.error('Fullscreen error:', err);
-          }
-        } else {
-          document.exitFullscreen();
-        }
-      });
-
-      document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement) {
-          playerWrapper.classList.remove('fullscreen');
-          fullscreenBtn.textContent = 'Fullscreen';
-          header.classList.remove('hidden');
-          video.setAttribute('controls', 'controls');
-        }
-      });
-
-      // Auto fullscreen on landscape orientation (mobile)
-      if (screen.orientation) {
-        screen.orientation.addEventListener('change', async () => {
-          if (screen.orientation.type.includes('landscape')) {
-            if (!document.fullscreenElement) {
-              try {
-                await playerWrapper.requestFullscreen();
-                playerWrapper.classList.add('fullscreen');
-                fullscreenBtn.textContent = 'Exit Fullscreen';
-                header.classList.add('hidden');
-                video.removeAttribute('controls');
-                showControls();
-              } catch (err) {
-                console.error('Auto fullscreen error:', err);
-              }
-            }
-          }
+      if (!isInFullscreen) {
+        playerWrapper.requestFullscreen().then(() => {
+          isInFullscreen = true;
+          playerWrapper.classList.add('in-fullscreen');
+          fullscreenBtn.textContent = 'Exit Fullscreen';
+          header.classList.add('hidden');
+          updateControlsVisibility();
+          showControls();
+        }).catch(err => {
+          console.error('Fullscreen error:', err);
         });
       }
+    }
+
+    function exitFullscreen() {
+      const playerWrapper = document.getElementById('playerWrapper');
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+      const header = document.getElementById('header');
+
+      if (document.fullscreenElement) {
+        document.exitFullscreen().then(() => {
+          isInFullscreen = false;
+          playerWrapper.classList.remove('in-fullscreen');
+          fullscreenBtn.textContent = 'Fullscreen';
+          header.classList.remove('hidden');
+          hideControls();
+          updateControlsVisibility();
+        }).catch(err => {
+          console.error('Exit fullscreen error:', err);
+        });
+      } else {
+        // Force state reset if already exited
+        isInFullscreen = false;
+        playerWrapper.classList.remove('in-fullscreen');
+        fullscreenBtn.textContent = 'Fullscreen';
+        header.classList.remove('hidden');
+        hideControls();
+        updateControlsVisibility();
+      }
+    }
+
+    function setupFullscreen() {
+      const fullscreenBtn = document.getElementById('fullscreenBtn');
+
+      fullscreenBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!isInFullscreen) {
+          enterFullscreen();
+        } else {
+          exitFullscreen();
+        }
+      });
+
+      // Handle browser fullscreen changes (like pressing ESC)
+      document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isInFullscreen) {
+          exitFullscreen();
+        }
+      });
+
+      // Remove auto-fullscreen on orientation change
+      // Let users decide when to go fullscreen
     }
 
     function setupOrientation() {
@@ -795,7 +797,6 @@
       });
     }
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown-container')) {
         closeAllDropdowns();
@@ -867,8 +868,8 @@
         setupOrientation();
         setupPlayerInteraction();
 
-        // Show controls initially
-        showControls();
+        // Set native controls visible initially
+        updateControlsVisibility();
 
         console.log("Playing:", streamUrl);
       } catch (err) {
