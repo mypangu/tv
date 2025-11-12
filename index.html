@@ -18,51 +18,54 @@
       min-height: 100vh;
     }
 
-    header {
-      position: sticky;
-      top: 0;
-      padding: 15px 20px;
-      background: rgba(31, 40, 51, 0.95);
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.4);
-      z-index: 1000;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+header {
+  position: sticky;
+  top: 0;
+  padding: 15px 20px;
+  background: rgba(31, 40, 51, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  z-index: 1000;
+}
 
-    header h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      color: #66fcf1;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
+.header-row-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  width: 100%;
+}
 
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex: 1;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
+.header-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
 
-    input {
-      padding: 10px 15px;
-      border-radius: 8px;
-      border: 2px solid #45a29e;
-      outline: none;
-      font-size: 0.95rem;
-      background: rgba(255,255,255,0.1);
-      color: #fff;
-      transition: all 0.3s;
-      min-width: 200px;
-      flex: 1;
-      max-width: 300px;
-    }
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #66fcf1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+input {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid #45a29e;
+  outline: none;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transition: all 0.3s;
+  flex: 1;
+  min-width: 150px;
+}
 
     input::placeholder {
       color: rgba(255,255,255,0.5);
@@ -72,6 +75,29 @@
       border-color: #66fcf1;
       background: rgba(255,255,255,0.15);
     }
+	
+select {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid #45a29e;
+  outline: none;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transition: all 0.3s;
+  cursor: pointer;
+  flex: 1;
+}
+
+select option {
+  background: #1f2833;
+  color: #fff;
+}
+
+select:focus {
+  border-color: #66fcf1;
+  background: rgba(255,255,255,0.15);
+}	
 
     .refresh-btn {
       background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
@@ -198,6 +224,44 @@
       z-index: 1;
       line-height: 1.3;
     }
+	
+.channel-name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  display: block;
+  position: relative;
+  z-index: 1;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.channel-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.genre-tag, .lang-tag {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.genre-tag {
+  background: rgba(102, 252, 241, 0.2);
+  color: #66fcf1;
+  border: 1px solid rgba(102, 252, 241, 0.3);
+}
+
+.lang-tag {
+  background: rgba(69, 162, 158, 0.2);
+  color: #66fcf1;
+  border: 1px solid rgba(69, 162, 158, 0.3);
+}	
 
     .loading-more {
       text-align: center;
@@ -223,57 +287,70 @@
       font-size: 1.1rem;
     }
 
-    @media (max-width: 768px) {
-      header h1 {
-        font-size: 1.3rem;
-      }
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
 
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-        gap: 15px;
-      }
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 15px;
+  }
 
-      input {
-        min-width: 150px;
-      }
-    }
+  input {
+    min-width: 150px;
+  }
+}
 
-    @media (max-width: 480px) {
-      header {
-        padding: 12px 15px;
-      }
+@media (max-width: 480px) {
+  header {
+    padding: 12px 15px;
+  }
 
-      header h1 {
-        font-size: 1.2rem;
-        width: 100%;
-      }
+  header h1 {
+    font-size: 1.1rem;
+  }
 
-      .header-controls {
-        width: 100%;
-      }
+  .header-row-1, .header-row-2 {
+    gap: 8px;
+  }
 
-      input {
-        max-width: 100%;
-      }
+  input, select {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
 
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-        gap: 12px;
-      }
-    }
+  .refresh-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 12px;
+  }
+}
   </style>
 </head>
 <body>
-  <header>
+<header>
+  <div class="header-row-1">
     <h1>📺 PanguTV Live</h1>
-    <div class="header-controls">
-      <input type="text" id="search" placeholder="Search channels..." />
-      <button class="refresh-btn" id="refreshBtn">
-        <span class="refresh-icon">↻</span>
-        <span>Refresh</span>
-      </button>
-    </div>
-  </header>
+    <input type="text" id="search" placeholder="Search channels..." />
+  </div>
+  <div class="header-row-2">
+    <select id="languageFilter">
+      <option value="">All Languages</option>
+    </select>
+    <select id="genreFilter">
+      <option value="">All Genres</option>
+    </select>
+    <button class="refresh-btn" id="refreshBtn">
+      <span class="refresh-icon">↻</span>
+      <span>Refresh</span>
+    </button>
+  </div>
+</header>
 
   <div class="container">
     <div class="stats" id="stats">Loading channels...</div>
@@ -294,27 +371,82 @@
     const BATCH_SIZE = 20;
     let isLoading = false;
     let searchQuery = '';
+	let selectedLanguage = localStorage.getItem('selectedLanguage') || 'Tamil';
+	let selectedGenre = '';
 
     function normalizeName(name) {
       return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
     }
+	
+function populateFilters() {
+  const languageFilter = document.getElementById('languageFilter');
+  const genreFilter = document.getElementById('genreFilter');
+  
+  // Get unique languages and genres
+  const languages = [...new Set(allChannels.map(ch => ch.language))].sort();
+  const genres = [...new Set(allChannels.map(ch => ch.genre))].sort();
+  
+  // Populate language filter
+  languageFilter.innerHTML = '<option value="">All Languages</option>';
+  languages.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang;
+    option.textContent = lang;
+    if (lang === selectedLanguage) {
+		option.selected = true;
+	}
+    languageFilter.appendChild(option);
+  });
+  
+  // Populate genre filter
+  genreFilter.innerHTML = '<option value="">All Genres</option>';
+  genres.forEach(genre => {
+    const option = document.createElement('option');
+    option.value = genre;
+    option.textContent = genre;
+    genreFilter.appendChild(option);
+  });
+}	
 
 async function loadChannels(forceRefresh = false) {
   const refreshBtn = document.getElementById('refreshBtn');
   refreshBtn.classList.add('loading');
   
   try {
-    const url = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
-    const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
-    allChannels = await res.json();
-    allChannels = allChannels.filter(ch => ch.name && ch.link);
+    const url1 = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
+    const url2 = 'https://raw.githubusercontent.com/mypangu/tv/refs/heads/main/map.json' + (forceRefresh ? '?t=' + Date.now() : '');
     
-    filteredChannels = allChannels;
-    displayedCount = 0;
-    document.getElementById('channels').innerHTML = '';
+    const [res1, res2] = await Promise.all([
+      fetch(url1, { cache: forceRefresh ? 'reload' : 'default' }),
+      fetch(url2, { cache: forceRefresh ? 'reload' : 'default' })
+    ]);
     
-    updateStats();
-    loadMoreChannels();
+    const channelsData = await res1.json();
+    const metaData = await res2.json();
+    
+    const metaMap = {};
+    metaData.forEach(meta => {
+      const normalizedName = normalizeName(meta.name);
+      metaMap[normalizedName] = meta;
+    });
+    
+    allChannels = channelsData
+      .filter(ch => ch.name && ch.link)
+      .map(ch => {
+        const normalizedName = normalizeName(ch.name);
+        const meta = metaMap[normalizedName];
+        
+        return {
+          ...ch,
+          genre: meta?.genre || 'Other',
+          language: meta?.language || 'Unknown',
+          logo: meta?.logo || ch.logo
+        };
+      });
+
+    populateFilters();  // ✅ Fill dropdowns first
+    applyFilters();     // ✅ Apply default Tamil filter immediately
+
   } catch (error) {
     console.error('Error loading channels:', error);
     document.getElementById('stats').textContent = 'Error loading channels. Please try again.';
@@ -332,28 +464,32 @@ async function loadChannels(forceRefresh = false) {
       }
     }
 
-    function renderChannels(channels) {
-      const container = document.getElementById('channels');
-      const fragment = document.createDocumentFragment();
+function renderChannels(channels) {
+  const container = document.getElementById('channels');
+  const fragment = document.createDocumentFragment();
 
-      channels.forEach(ch => {
-        const id = normalizeName(ch.name);
-        const div = document.createElement('div');
-        div.className = 'channel';
-        div.innerHTML = `
-          <div class="channel-logo-wrapper">
-            <img src="${ch.logo || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'40\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E'}" alt="${ch.name}" loading="lazy">
-          </div>
-          <span>${ch.name}</span>
-        `;
-        div.addEventListener('click', () => {
-          window.location.href = `player.html?id=${id}`;
-        });
-        fragment.appendChild(div);
-      });
+  channels.forEach(ch => {
+    const id = normalizeName(ch.name);
+    const div = document.createElement('div');
+    div.className = 'channel';
+    div.innerHTML = `
+      <div class="channel-logo-wrapper">
+        <img src="${ch.logo || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'40\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E'}" alt="${ch.name}" loading="lazy">
+      </div>
+      <span class="channel-name">${ch.name}</span>
+      <div class="channel-meta">
+        <span class="genre-tag">${ch.genre}</span>
+        <span class="lang-tag">${ch.language}</span>
+      </div>
+    `;
+    div.addEventListener('click', () => {
+      window.location.href = `player.html?id=${id}`;
+    });
+    fragment.appendChild(div);
+  });
 
-      container.appendChild(fragment);
-    }
+  container.appendChild(fragment);
+}
 
 function loadMoreChannels() {
   if (isLoading || displayedCount >= filteredChannels.length) {
@@ -405,25 +541,44 @@ function checkAndLoadMore() {
       }
     }
 
-    function handleSearch(val) {
-      searchQuery = val;
-      filteredChannels = allChannels.filter(ch => 
-        ch.name.toLowerCase().includes(val.toLowerCase())
-      );
-      displayedCount = 0;
-      document.getElementById('channels').innerHTML = '';
-      updateStats();
-      loadMoreChannels();
-    }
+function applyFilters() {
+  filteredChannels = allChannels.filter(ch => {
+    const matchesSearch = !searchQuery || ch.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLanguage = !selectedLanguage || ch.language === selectedLanguage;
+    const matchesGenre = !selectedGenre || ch.genre === selectedGenre;
+    
+    return matchesSearch && matchesLanguage && matchesGenre;
+  });
+  
+  displayedCount = 0;
+  document.getElementById('channels').innerHTML = '';
+  updateStats();
+  loadMoreChannels();
+}
 
     // Search with debounce
-    let searchTimeout;
-    document.getElementById('search').addEventListener('input', (e) => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        handleSearch(e.target.value);
-      }, 300);
-    });
+let searchTimeout;
+document.getElementById('search').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchQuery = e.target.value;
+    applyFilters();
+  }, 300);
+});
+
+// Language filter
+document.getElementById('languageFilter').addEventListener('change', (e) => {
+  selectedLanguage = e.target.value;
+  localStorage.setItem('selectedLanguage', selectedLanguage); // ✅ save it
+  applyFilters();
+});
+
+
+// Genre filter
+document.getElementById('genreFilter').addEventListener('change', (e) => {
+  selectedGenre = e.target.value;
+  applyFilters();
+});
 
     // Refresh button
     document.getElementById('refreshBtn').addEventListener('click', () => {
