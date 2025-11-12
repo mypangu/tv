@@ -385,16 +385,27 @@ body.in-fullscreen .fullscreen-controls {
     let controlsTimeout;
     let isControlsVisible = false;
 
-    const languageMap = {
-      'tam': 'Tamil', 'tel': 'Telugu', 'mal': 'Malayalam', 'kan': 'Kannada',
-      'hin': 'Hindi', 'ben': 'Bengali', 'guj': 'Gujarati', 'ori': 'Odia',
-      'mar': 'Marathi', 'eng': 'English', 'pan': 'Punjabi', 'und': 'Unknown'
-    };
+const languageMap = {
+  'tam': 'Tamil', 'ta': 'Tamil',
+  'tel': 'Telugu', 'te': 'Telugu',
+  'mal': 'Malayalam', 'ml': 'Malayalam',
+  'kan': 'Kannada', 'kn': 'Kannada',
+  'hin': 'Hindi', 'hi': 'Hindi',
+  'ben': 'Bengali', 'bn': 'Bengali',
+  'guj': 'Gujarati', 'gu': 'Gujarati',
+  'ori': 'Odia', 'or': 'Odia',
+  'mar': 'Marathi', 'mr': 'Marathi',
+  'eng': 'English', 'en': 'English',
+  'pan': 'Punjabi', 'pa': 'Punjabi',
+  'und': 'Unknown'
+};
 
-    function getLanguageName(code) {
-      const normalized = code ? code.toLowerCase().substring(0, 3) : 'und';
-      return languageMap[normalized] || code || 'Unknown';
-    }
+function getLanguageName(code) {
+  if (!code) return 'Unknown';
+  const normalized = code.toLowerCase().substring(0, 3);
+  const twoLetter = code.toLowerCase().substring(0, 2);
+  return languageMap[normalized] || languageMap[twoLetter] || code || 'Unknown';
+}
 	
 function positionDropdown(button, menu) {
   const buttonRect = button.getBoundingClientRect();
@@ -503,11 +514,6 @@ function showError(message) {
       const tracks = player.getVariantTracks();
       const uniqueQualities = [...new Set(tracks.map(t => t.height))].sort((a, b) => b - a);
 
-      if (uniqueQualities.length <= 1) {
-        qualityBtn.style.display = 'none';
-        return;
-      }
-
       qualityMenu.innerHTML = '<div class="dropdown-item active" data-quality="auto">Auto</div>';
       uniqueQualities.forEach(height => {
         const item = document.createElement('div');
@@ -557,31 +563,34 @@ qualityBtn.addEventListener('click', (e) => {
       if (!player) return;
 
       const audioTracks = player.getAudioLanguagesAndRoles();
-      
-      if (audioTracks.length <= 1) {
-        audioBtn.style.display = 'none';
-        return;
-      }
 
-      audioMenu.innerHTML = '';
-      audioTracks.forEach((track, index) => {
-        const item = document.createElement('div');
-        item.className = 'dropdown-item';
-        const langName = getLanguageName(track.language);
-        item.textContent = langName + (track.role ? ` (${track.role})` : '');
-        if (index === 0) item.classList.add('active');
-        
-        item.addEventListener('click', (e) => {
-          e.stopPropagation();
-          player.selectAudioLanguage(track.language, track.role);
-          audioBtn.textContent = `Audio: ${langName}`;
-          audioMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
-          item.classList.add('active');
-          audioMenu.classList.remove('show');
-          //showControls();
-        });
-        audioMenu.appendChild(item);
-      });
+audioMenu.innerHTML = '';
+audioTracks.forEach((track, index) => {
+  const item = document.createElement('div');
+  item.className = 'dropdown-item';
+  let langName = getLanguageName(track.language);
+  
+  // If unknown, use Track number
+  if (langName === 'Unknown' || langName === track.language) {
+    langName = `Track ${index + 1}`;
+  }
+  
+  item.textContent = langName + (track.role ? ` (${track.role})` : '');
+  if (index === 0) item.classList.add('active');
+  
+  item.addEventListener('click', (e) => {
+    e.stopPropagation();
+    player.selectAudioLanguage(track.language, track.role);
+    audioBtn.textContent = `Audio: ${langName}`;
+    audioMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+    item.classList.add('active');
+    audioMenu.classList.remove('show');
+    if (audioMenu.classList.contains('show')) {
+      positionDropdown(audioBtn, audioMenu);
+    }
+  });
+  audioMenu.appendChild(item);
+});
 
 audioBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -592,9 +601,35 @@ audioBtn.addEventListener('click', (e) => {
   }
 });
 
-      if (audioTracks.length > 0) {
-        audioBtn.textContent = `Audio: ${getLanguageName(audioTracks[0].language)}`;
+if (audioTracks.length > 0) {
+  // Try to find and select Tamil track
+  const tamilTrackIndex = audioTracks.findIndex(track => {
+    const lang = track.language.toLowerCase().substring(0, 3);
+    return lang === 'tam' || lang === 'ta';
+  });
+  
+  if (tamilTrackIndex !== -1) {
+    const tamilTrack = audioTracks[tamilTrackIndex];
+    // Select Tamil audio
+    player.selectAudioLanguage(tamilTrack.language, tamilTrack.role);
+    audioBtn.textContent = `Audio: Tamil`;
+    
+    // Update active state in menu
+    audioMenu.querySelectorAll('.dropdown-item').forEach((item, index) => {
+      item.classList.remove('active');
+      if (index === tamilTrackIndex) {
+        item.classList.add('active');
       }
+    });
+  } else {
+    // Default to first track if Tamil not found
+    let defaultLang = getLanguageName(audioTracks[0].language);
+    if (defaultLang === 'Unknown' || defaultLang === audioTracks[0].language) {
+      defaultLang = 'Track 1';
+    }
+    audioBtn.textContent = `Audio: ${defaultLang}`;
+  }
+}
     }
 
     function setupVideoTrackControl() {
@@ -604,11 +639,6 @@ audioBtn.addEventListener('click', (e) => {
       if (!player) return;
 
       const videoTracks = player.getTextLanguagesAndRoles();
-      
-      if (videoTracks.length === 0) {
-        videoBtn.style.display = 'none';
-        return;
-      }
 
       videoMenu.innerHTML = '<div class="dropdown-item active" data-track="off">Off</div>';
       videoTracks.forEach(track => {
