@@ -38,11 +38,11 @@
       box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
       z-index: 2000;
       flex-shrink: 0;
-      transition: transform 0.3s;
     }
 
     header.hidden {
       transform: translateY(-100%);
+      transition: transform 0.3s;
     }
 
     header img {
@@ -81,25 +81,37 @@
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
     }
+	
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  background: rgba(31, 40, 51, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  flex-shrink: 0;
+}
 
-    .player-wrapper {
-      flex: 1;
-      position: relative;
-      background: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      width: 100%;
-      height: 100%;
-    }
+.player-wrapper {
+  flex: 1;
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+  min-height: 0;
+}
 
     video {
       width: 100%;
       height: 100%;
       background: #000;
       outline: none;
-      display: block;
+      object-fit: contain;
     }
 
     video.fit { object-fit: contain; }
@@ -134,30 +146,6 @@
     .loading-text {
       font-size: 1.1rem;
       color: #66fcf1;
-    }
-
-    .controls-overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.8) 60%, transparent 100%);
-      padding: 20px;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.3s, visibility 0.3s;
-      z-index: 1500;
-      pointer-events: none;
-    }
-
-    .controls-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .player-wrapper.in-fullscreen .controls-overlay {
-      padding: 30px 20px;
     }
 
     .controls-row {
@@ -196,23 +184,24 @@
       color: #0b0c10;
     }
 
-    .dropdown-menu {
-      position: absolute;
-      bottom: 100%;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(31, 40, 51, 0.98);
-      border: 1px solid #45a29e;
-      border-radius: 8px;
-      padding: 8px;
-      margin-bottom: 8px;
-      max-height: 300px;
-      overflow-y: auto;
-      min-width: 200px;
-      display: none;
-      backdrop-filter: blur(10px);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
-    }
+.dropdown-menu {
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  background: rgba(31, 40, 51, 0.98);
+  border: 1px solid #45a29e;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 200px;
+  display: none;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 3000;
+}
 
     .dropdown-menu.show {
       display: block;
@@ -243,13 +232,13 @@
       position: relative;
     }
 
-    .fullscreen-controls {
-      display: none;
-    }
+.fullscreen-controls {
+  display: none;
+}
 
-    .player-wrapper.in-fullscreen .fullscreen-controls {
-      display: block;
-    }
+body.in-fullscreen .fullscreen-controls {
+  display: block;
+}
 
     .error-message {
       position: absolute;
@@ -307,11 +296,11 @@
       }
     }
 
-    @media (orientation: landscape) {
-      body:not(.manual-scale) video {
-        object-fit: fill !important;
-      }
-    }
+@media (orientation: landscape) {
+  body.in-fullscreen:not(.manual-portrait) video {
+    object-fit: fill !important;
+  }
+}
 
     /* Scrollbar styling */
     .dropdown-menu::-webkit-scrollbar {
@@ -340,62 +329,61 @@
     <button onclick="window.location.href='index.html'">← Back</button>
   </header>
 
-  <div class="player-wrapper" id="playerWrapper">
-    <video id="video" autoplay playsinline webkit-playsinline></video>
-    
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <div class="loading-text">Loading Stream...</div>
+<div class="player-wrapper" id="playerWrapper">
+  <video id="video" autoplay controls playsinline></video>
+  
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading Stream...</div>
+  </div>
+
+  <div class="error-message" id="error" style="display: none;"></div>
+</div>
+
+<footer id="controlsFooter">
+  <div class="controls-row">
+    <div class="dropdown-container">
+      <button class="control-btn" id="qualityBtn">Quality: Auto</button>
+      <div class="dropdown-menu" id="qualityMenu"></div>
     </div>
 
-    <div class="error-message" id="error" style="display: none;"></div>
+    <div class="dropdown-container">
+      <button class="control-btn" id="audioBtn">Audio Track</button>
+      <div class="dropdown-menu" id="audioMenu"></div>
+    </div>
 
-    <div class="controls-overlay" id="controlsOverlay">
-      <div class="controls-row">
-        <div class="dropdown-container">
-          <button class="control-btn" id="qualityBtn">Quality: Auto</button>
-          <div class="dropdown-menu" id="qualityMenu"></div>
-        </div>
+    <div class="dropdown-container">
+      <button class="control-btn" id="videoBtn">Video Track</button>
+      <div class="dropdown-menu" id="videoMenu"></div>
+    </div>
 
-        <div class="dropdown-container">
-          <button class="control-btn" id="audioBtn">Audio Track</button>
-          <div class="dropdown-menu" id="audioMenu"></div>
-        </div>
+    <div class="dropdown-container">
+      <button class="control-btn" id="scaleBtn">Scale: Fit</button>
+      <div class="dropdown-menu" id="scaleMenu">
+        <div class="dropdown-item active" data-scale="fit">Fit</div>
+        <div class="dropdown-item" data-scale="fill">Fill</div>
+        <div class="dropdown-item" data-scale="crop">Stretch</div>
+      </div>
+    </div>
 
-        <div class="dropdown-container">
-          <button class="control-btn" id="videoBtn">Video Track</button>
-          <div class="dropdown-menu" id="videoMenu"></div>
-        </div>
+    <!-- <button class="control-btn" id="fullscreenBtn">Fullscreen</button> -->
 
-        <div class="dropdown-container">
-          <button class="control-btn" id="scaleBtn">Scale: Fit</button>
-          <div class="dropdown-menu" id="scaleMenu">
-            <div class="dropdown-item" data-scale="fit">Fit</div>
-            <div class="dropdown-item" data-scale="fill">Fill</div>
-            <div class="dropdown-item active" data-scale="crop">Stretch</div>
-          </div>
-        </div>
-
-        <button class="control-btn" id="fullscreenBtn">Fullscreen</button>
-
-        <div class="dropdown-container fullscreen-controls">
-          <button class="control-btn" id="orientationBtn">Orientation</button>
-          <div class="dropdown-menu" id="orientationMenu">
-            <div class="dropdown-item" data-orientation="any">Any</div>
-            <div class="dropdown-item" data-orientation="landscape">Landscape</div>
-            <div class="dropdown-item" data-orientation="portrait">Portrait</div>
-          </div>
-        </div>
+    <div class="dropdown-container fullscreen-controls">
+      <button class="control-btn" id="orientationBtn">Orientation</button>
+      <div class="dropdown-menu" id="orientationMenu">
+        <div class="dropdown-item" data-orientation="any">Any</div>
+        <div class="dropdown-item" data-orientation="landscape">Landscape</div>
+        <div class="dropdown-item" data-orientation="portrait">Portrait</div>
       </div>
     </div>
   </div>
+</footer>
 
   <script>
     let player;
     let currentScale = 'crop';
     let controlsTimeout;
     let isControlsVisible = false;
-    let isInFullscreen = false;
 
     const languageMap = {
       'tam': 'Tamil', 'tel': 'Telugu', 'mal': 'Malayalam', 'kan': 'Kannada',
@@ -407,92 +395,104 @@
       const normalized = code ? code.toLowerCase().substring(0, 3) : 'und';
       return languageMap[normalized] || code || 'Unknown';
     }
+	
+function positionDropdown(button, menu) {
+  const buttonRect = button.getBoundingClientRect();
+  const menuHeight = menu.offsetHeight || 300; // estimated height
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  
+  // Calculate available space above and below
+  const spaceAbove = buttonRect.top;
+  const spaceBelow = viewportHeight - buttonRect.bottom;
+  
+  // Position horizontally (centered on button)
+  let left = buttonRect.left + (buttonRect.width / 2) - (menu.offsetWidth / 2);
+  
+  // Keep within viewport horizontally
+  if (left < 10) left = 10;
+  if (left + menu.offsetWidth > viewportWidth - 10) {
+    left = viewportWidth - menu.offsetWidth - 10;
+  }
+  
+  menu.style.left = left + 'px';
+  
+  // Position vertically (prefer above button)
+  if (spaceAbove > menuHeight + 10 || spaceAbove > spaceBelow) {
+    // Show above button
+    menu.style.bottom = (viewportHeight - buttonRect.top + 8) + 'px';
+    menu.style.top = 'auto';
+  } else {
+    // Show below button
+    menu.style.top = (buttonRect.bottom + 8) + 'px';
+    menu.style.bottom = 'auto';
+  }
+}	
+	
+function showFooter() {
+  const footer = document.getElementById('controlsFooter');
+  footer.classList.add('visible');
+  
+  clearTimeout(controlsTimeout);
+  controlsTimeout = setTimeout(() => {
+    hideFooter();
+  }, 4000);
+}
 
-    function showError(message) {
-      const loading = document.getElementById('loading');
-      const error = document.getElementById('error');
-      loading.style.display = 'none';
-      error.textContent = message;
-      error.style.display = 'block';
-    }
+function hideFooter() {
+  const footer = document.getElementById('controlsFooter');
+  
+  // Don't hide if a dropdown is open
+  if (document.querySelector('.dropdown-menu.show')) {
+    showFooter(); // Reset timer
+    return;
+  }
+  
+  footer.classList.remove('visible');
+}
 
-    function updateControlsVisibility() {
-      const video = document.getElementById('video');
-      
-      if (isInFullscreen) {
-        // In fullscreen, hide native controls, show custom
-        video.removeAttribute('controls');
+function setupFooterInteraction() {
+  const playerWrapper = document.getElementById('playerWrapper');
+  const footer = document.getElementById('controlsFooter');
+  
+  // Only setup interaction when in fullscreen
+  playerWrapper.addEventListener('click', () => {
+    if (document.body.classList.contains('in-fullscreen')) {
+      if (footer.classList.contains('visible')) {
+        hideFooter();
       } else {
-        // Not in fullscreen, show native controls
-        video.setAttribute('controls', 'controls');
+        showFooter();
       }
     }
+  });
 
-    function showControls() {
-      const overlay = document.getElementById('controlsOverlay');
-      
-      overlay.classList.add('visible');
-      isControlsVisible = true;
-      
+  // Keep footer visible when hovering over it
+  footer.addEventListener('mouseenter', () => {
+    if (document.body.classList.contains('in-fullscreen')) {
       clearTimeout(controlsTimeout);
-      controlsTimeout = setTimeout(() => {
-        hideControls();
-      }, 4000);
     }
+  });
 
-    function hideControls() {
-      const overlay = document.getElementById('controlsOverlay');
-      
-      // Don't hide if a dropdown is open
-      if (document.querySelector('.dropdown-menu.show')) {
-        showControls();
-        return;
-      }
-      
-      overlay.classList.remove('visible');
-      isControlsVisible = false;
+  footer.addEventListener('mouseleave', () => {
+    if (document.body.classList.contains('in-fullscreen')) {
+      showFooter(); // Restart timer
     }
+  });
+}	
 
-    function toggleControls() {
-      if (isControlsVisible) {
-        hideControls();
-      } else {
-        showControls();
-      }
-    }
-
-    function setupPlayerInteraction() {
-      const playerWrapper = document.getElementById('playerWrapper');
-      const video = document.getElementById('video');
-      
-      // Click/tap to toggle controls (only in fullscreen)
-      playerWrapper.addEventListener('click', (e) => {
-        if (!isInFullscreen) return;
-        if (e.target.closest('.controls-overlay')) return;
-        toggleControls();
-      });
-
-      video.addEventListener('play', () => {
-        if (isInFullscreen) showControls();
-      });
-
-      video.addEventListener('pause', () => {
-        if (isInFullscreen) showControls();
-      });
-
-      playerWrapper.addEventListener('mousemove', () => {
-        if (isInFullscreen) showControls();
-      });
-
-      const overlay = document.getElementById('controlsOverlay');
-      overlay.addEventListener('mouseenter', () => {
-        clearTimeout(controlsTimeout);
-      });
-
-      overlay.addEventListener('mouseleave', () => {
-        if (isInFullscreen) showControls();
-      });
-    }
+function showError(message) {
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const video = document.getElementById('video');
+  loading.style.display = 'none';
+  if (message) {
+    video.style.display = 'none';
+    error.textContent = message;
+    error.style.display = 'block';
+  } else {
+    error.style.display = 'none';
+  }
+}
 
     function setupQualityControl() {
       const qualityBtn = document.getElementById('qualityBtn');
@@ -525,17 +525,19 @@
           qualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
           item.classList.add('active');
           qualityMenu.classList.remove('show');
-          showControls();
+          //showControls();
         });
         qualityMenu.appendChild(item);
       });
 
-      qualityBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        qualityMenu.classList.toggle('show');
-        showControls();
-      });
+qualityBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  qualityMenu.classList.toggle('show');
+  if (qualityMenu.classList.contains('show')) {
+    positionDropdown(qualityBtn, qualityMenu);
+  }
+});
 
       qualityMenu.querySelector('[data-quality="auto"]').addEventListener('click', (e) => {
         e.stopPropagation();
@@ -544,7 +546,7 @@
         qualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
         qualityMenu.querySelector('[data-quality="auto"]').classList.add('active');
         qualityMenu.classList.remove('show');
-        showControls();
+        //showControls();
       });
     }
 
@@ -561,28 +563,13 @@
         return;
       }
 
-      // Find Tamil track if available
-      let tamilTrackIndex = audioTracks.findIndex(track => {
-        const lang = track.language ? track.language.toLowerCase() : '';
-        return lang.startsWith('tam') || lang === 'ta';
-      });
-
-      // If Tamil not found, use first track
-      if (tamilTrackIndex === -1) {
-        tamilTrackIndex = 0;
-      }
-
-      // Set Tamil (or first) as default
-      const defaultTrack = audioTracks[tamilTrackIndex];
-      player.selectAudioLanguage(defaultTrack.language, defaultTrack.role);
-
       audioMenu.innerHTML = '';
       audioTracks.forEach((track, index) => {
         const item = document.createElement('div');
         item.className = 'dropdown-item';
         const langName = getLanguageName(track.language);
         item.textContent = langName + (track.role ? ` (${track.role})` : '');
-        if (index === tamilTrackIndex) item.classList.add('active');
+        if (index === 0) item.classList.add('active');
         
         item.addEventListener('click', (e) => {
           e.stopPropagation();
@@ -591,21 +578,23 @@
           audioMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
           item.classList.add('active');
           audioMenu.classList.remove('show');
-          showControls();
+          //showControls();
         });
         audioMenu.appendChild(item);
       });
 
-      audioBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        audioMenu.classList.toggle('show');
-        showControls();
-      });
+audioBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  audioMenu.classList.toggle('show');
+  if (audioMenu.classList.contains('show')) {
+    positionDropdown(audioBtn, audioMenu);
+  }
+});
 
-      // Set button text to default language
-      const defaultLangName = getLanguageName(defaultTrack.language);
-      audioBtn.textContent = `Audio: ${defaultLangName}`;
+      if (audioTracks.length > 0) {
+        audioBtn.textContent = `Audio: ${getLanguageName(audioTracks[0].language)}`;
+      }
     }
 
     function setupVideoTrackControl() {
@@ -636,7 +625,7 @@
           videoMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
           item.classList.add('active');
           videoMenu.classList.remove('show');
-          showControls();
+          //showControls();
         });
         videoMenu.appendChild(item);
       });
@@ -648,15 +637,17 @@
         videoMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
         videoMenu.querySelector('[data-track="off"]').classList.add('active');
         videoMenu.classList.remove('show');
-        showControls();
+        //showControls();
       });
 
-      videoBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        videoMenu.classList.toggle('show');
-        showControls();
-      });
+videoBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  videoMenu.classList.toggle('show');
+  if (videoMenu.classList.contains('show')) {
+    positionDropdown(videoBtn, videoMenu);
+  }
+});
 
       videoBtn.textContent = 'Subtitles: Off';
     }
@@ -666,8 +657,10 @@
       const scaleBtn = document.getElementById('scaleBtn');
       const scaleMenu = document.getElementById('scaleMenu');
 
-      video.className = 'crop';
-      scaleBtn.textContent = 'Scale: Stretch';
+// Set initial scale to fit
+video.className = 'fit';
+scaleBtn.textContent = 'Scale: Fit';
+currentScale = 'fit';
 
       scaleMenu.querySelectorAll('.dropdown-item').forEach(item => {
         item.addEventListener('click', (e) => {
@@ -676,10 +669,11 @@
           video.className = scale;
           currentScale = scale;
           
-          if (scale !== 'crop') {
-            document.body.classList.add('manual-scale');
+          // Mark body if manually set to portrait mode
+          if (scale === 'fit' || scale === 'fill') {
+            document.body.classList.add('manual-portrait');
           } else {
-            document.body.classList.remove('manual-scale');
+            document.body.classList.remove('manual-portrait');
           }
           
           const label = scale.charAt(0).toUpperCase() + scale.slice(1);
@@ -687,16 +681,18 @@
           scaleMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
           item.classList.add('active');
           scaleMenu.classList.remove('show');
-          showControls();
+          //showControls();
         });
       });
 
-      scaleBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        scaleMenu.classList.toggle('show');
-        showControls();
-      });
+scaleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  scaleMenu.classList.toggle('show');
+  if (scaleMenu.classList.contains('show')) {
+    positionDropdown(scaleBtn, scaleMenu);
+  }
+});
     }
 
     function closeAllDropdowns() {
@@ -705,74 +701,51 @@
       });
     }
 
-    function enterFullscreen() {
-      const playerWrapper = document.getElementById('playerWrapper');
-      const fullscreenBtn = document.getElementById('fullscreenBtn');
-      const header = document.getElementById('header');
+function setupFullscreen() {
+  const playerWrapper = document.getElementById('playerWrapper');
+  const video = document.getElementById('video');
+  const header = document.getElementById('header');
 
-      if (!isInFullscreen) {
-        playerWrapper.requestFullscreen().then(() => {
-          isInFullscreen = true;
-          playerWrapper.classList.add('in-fullscreen');
-          fullscreenBtn.textContent = 'Exit Fullscreen';
-          header.classList.add('hidden');
-          updateControlsVisibility();
-          showControls();
-        }).catch(err => {
-          console.error('Fullscreen error:', err);
-        });
-      }
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) {
+      playerWrapper.classList.add('fullscreen');
+      document.body.classList.add('in-fullscreen');
+      header.classList.add('hidden');
+      // DON'T remove native controls - keep them
+      // video.removeAttribute('controls');  // DELETE this line
+      // Switch to stretch mode in fullscreen
+      video.className = 'crop';
+      currentScale = 'crop';
+      // DON'T call showFooter - let footer stay visible
+      // showFooter();  // DELETE this line
+    } else {
+      playerWrapper.classList.remove('fullscreen');
+      document.body.classList.remove('in-fullscreen');
+      header.classList.remove('hidden');
+      // video.setAttribute('controls', 'controls');  // Already has controls, no need
+      // Switch back to fit mode when exiting fullscreen
+      video.className = 'fit';
+      currentScale = 'fit';
+      const footer = document.getElementById('controlsFooter');
+      footer.classList.remove('visible');
     }
+  });
 
-    function exitFullscreen() {
-      const playerWrapper = document.getElementById('playerWrapper');
-      const fullscreenBtn = document.getElementById('fullscreenBtn');
-      const header = document.getElementById('header');
-
-      if (document.fullscreenElement) {
-        document.exitFullscreen().then(() => {
-          isInFullscreen = false;
-          playerWrapper.classList.remove('in-fullscreen');
-          fullscreenBtn.textContent = 'Fullscreen';
-          header.classList.remove('hidden');
-          hideControls();
-          updateControlsVisibility();
-        }).catch(err => {
-          console.error('Exit fullscreen error:', err);
-        });
-      } else {
-        // Force state reset if already exited
-        isInFullscreen = false;
-        playerWrapper.classList.remove('in-fullscreen');
-        fullscreenBtn.textContent = 'Fullscreen';
-        header.classList.remove('hidden');
-        hideControls();
-        updateControlsVisibility();
-      }
-    }
-
-    function setupFullscreen() {
-      const fullscreenBtn = document.getElementById('fullscreenBtn');
-
-      fullscreenBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (!isInFullscreen) {
-          enterFullscreen();
-        } else {
-          exitFullscreen();
+  // Auto fullscreen on landscape orientation (mobile)
+  if (screen.orientation) {
+    screen.orientation.addEventListener('change', async () => {
+      if (screen.orientation.type.includes('landscape')) {
+        if (!document.fullscreenElement) {
+          try {
+            await playerWrapper.requestFullscreen();
+          } catch (err) {
+            console.error('Auto fullscreen error:', err);
+          }
         }
-      });
-
-      // Handle browser fullscreen changes (like pressing ESC)
-      document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement && isInFullscreen) {
-          exitFullscreen();
-        }
-      });
-
-      // Remove auto-fullscreen on orientation change
-      // Let users decide when to go fullscreen
-    }
+      }
+    });
+  }
+}
 
     function setupOrientation() {
       const orientationBtn = document.getElementById('orientationBtn');
@@ -797,21 +770,24 @@
             orientationMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
             item.classList.add('active');
             orientationMenu.classList.remove('show');
-            showControls();
+            //showControls();
           } catch (err) {
             console.log('Orientation lock not supported:', err);
           }
         });
       });
 
-      orientationBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        closeAllDropdowns();
-        orientationMenu.classList.toggle('show');
-        showControls();
-      });
+orientationBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  orientationMenu.classList.toggle('show');
+  if (orientationMenu.classList.contains('show')) {
+    positionDropdown(orientationBtn, orientationMenu);
+  }
+});
     }
 
+    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown-container')) {
         closeAllDropdowns();
@@ -872,19 +848,20 @@
           streamUrl += sep + channel.cookie.replace(/^[?&]/, "");
         }
 
-        await player.load(streamUrl);
-        document.getElementById('loading').style.display = "none";
+await player.load(streamUrl);
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+loading.style.display = "none";
+error.style.display = "none";
+error.textContent = "";
 
-        setupQualityControl();
-        setupAudioControl();
-        setupVideoTrackControl();
-        setupScaleControl();
-        setupFullscreen();
-        setupOrientation();
-        setupPlayerInteraction();
-
-        // Set native controls visible initially
-        updateControlsVisibility();
+setupQualityControl();
+setupAudioControl();
+setupVideoTrackControl();
+setupScaleControl();
+setupFullscreen();
+setupOrientation();
+setupFooterInteraction();
 
         console.log("Playing:", streamUrl);
       } catch (err) {
