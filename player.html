@@ -639,6 +639,14 @@ if (audioTracks.length > 0) {
       if (!player) return;
 
       const videoTracks = player.getTextLanguagesAndRoles();
+	  
+	  if (videoTracks.length === 0) {
+    videoBtn.style.display = 'none';
+    return;
+  }
+  
+  // Show button if there are subtitles
+  videoBtn.style.display = 'block';
 
       videoMenu.innerHTML = '<div class="dropdown-item active" data-track="off">Off</div>';
       videoTracks.forEach(track => {
