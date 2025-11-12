@@ -299,29 +299,29 @@
       return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
     }
 
-    async function loadChannels(forceRefresh = false) {
-      const refreshBtn = document.getElementById('refreshBtn');
-      refreshBtn.classList.add('loading');
-      
-      try {
-        const url = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
-        const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
-        allChannels = await res.json();
-        allChannels = allChannels.filter(ch => ch.name && ch.link);
-        
-        filteredChannels = allChannels;
-        displayedCount = 0;
-        document.getElementById('channels').innerHTML = '';
-        
-        updateStats();
-        loadMoreChannels();
-      } catch (error) {
-        console.error('Error loading channels:', error);
-        document.getElementById('stats').textContent = 'Error loading channels. Please try again.';
-      } finally {
-        refreshBtn.classList.remove('loading');
-      }
-    }
+async function loadChannels(forceRefresh = false) {
+  const refreshBtn = document.getElementById('refreshBtn');
+  refreshBtn.classList.add('loading');
+  
+  try {
+    const url = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
+    const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
+    allChannels = await res.json();
+    allChannels = allChannels.filter(ch => ch.name && ch.link);
+    
+    filteredChannels = allChannels;
+    displayedCount = 0;
+    document.getElementById('channels').innerHTML = '';
+    
+    updateStats();
+    loadMoreChannels();
+  } catch (error) {
+    console.error('Error loading channels:', error);
+    document.getElementById('stats').textContent = 'Error loading channels. Please try again.';
+  } finally {
+    refreshBtn.classList.remove('loading');
+  }
+}
 
     function updateStats() {
       const stats = document.getElementById('stats');
@@ -355,28 +355,42 @@
       container.appendChild(fragment);
     }
 
-    function loadMoreChannels() {
-      if (isLoading || displayedCount >= filteredChannels.length) {
-        document.getElementById('loadingMore').style.display = 'none';
-        return;
-      }
+function loadMoreChannels() {
+  if (isLoading || displayedCount >= filteredChannels.length) {
+    document.getElementById('loadingMore').style.display = 'none';
+    return;
+  }
 
-      isLoading = true;
-      document.getElementById('loadingMore').style.display = 'block';
+  isLoading = true;
+  document.getElementById('loadingMore').style.display = 'block';
 
-      setTimeout(() => {
-        const nextBatch = filteredChannels.slice(displayedCount, displayedCount + BATCH_SIZE);
-        renderChannels(nextBatch);
-        displayedCount += nextBatch.length;
-        isLoading = false;
+  setTimeout(() => {
+    const nextBatch = filteredChannels.slice(displayedCount, displayedCount + BATCH_SIZE);
+    renderChannels(nextBatch);
+    displayedCount += nextBatch.length;
+    isLoading = false;
 
-        if (displayedCount >= filteredChannels.length) {
-          document.getElementById('loadingMore').style.display = 'none';
-        }
-
-        updateNoResults();
-      }, 300);
+    if (displayedCount >= filteredChannels.length) {
+      document.getElementById('loadingMore').style.display = 'none';
     }
+
+    updateNoResults();
+    
+    // Check if we need to load more to fill the viewport
+    checkAndLoadMore();
+  }, 100);
+}
+
+function checkAndLoadMore() {
+  // Check if page height is less than viewport height + some buffer
+  const pageHeight = document.body.offsetHeight;
+  const viewportHeight = window.innerHeight;
+  
+  // If content doesn't fill the screen, load more
+  if (pageHeight < viewportHeight + 500 && displayedCount < filteredChannels.length && !isLoading) {
+    loadMoreChannels();
+  }
+}
 
     function updateNoResults() {
       const noResults = document.getElementById('noResults');
