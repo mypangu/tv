@@ -69,7 +69,8 @@ input {
   color: #fff;
   transition: all 0.3s;
   flex: 1;
-  min-width: 150px;
+  min-width: 0;
+  width: 100%;
 }
 
     input::placeholder {
@@ -290,11 +291,27 @@ select:focus {
   .refresh-btn {
     padding: 8px 12px;
     font-size: 0.85rem;
+	flex-shrink: 0;
+    white-space: nowrap; 
   }
 
   .grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .refresh-btn span:not(.refresh-icon) {
+    display: none; 
+  }
+  
+  .refresh-btn {
+    padding: 8px; 
+  }
+  
+  header h1 {
+    font-size: 1rem;
   }
 }
   </style>
