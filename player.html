@@ -112,6 +112,8 @@ footer {
       background: #000;
       outline: none;
       object-fit: contain;
+	  padding: 0;
+	  margin: 0;
     }
 
     video.fit { object-fit: contain; }
@@ -365,6 +367,8 @@ body.in-fullscreen .fullscreen-controls {
         <div class="dropdown-item" data-scale="crop">Stretch</div>
       </div>
     </div>
+	
+	<button class="control-btn" id="pipBtn">Picture-in-Picture</button>
 
     <!-- <button class="control-btn" id="fullscreenBtn">Fullscreen</button> -->
 
@@ -824,6 +828,44 @@ orientationBtn.addEventListener('click', (e) => {
   }
 });
     }
+	
+function setupPictureInPicture() {
+  const pipBtn = document.getElementById('pipBtn');
+  const video = document.getElementById('video');
+
+  if (!document.pictureInPictureEnabled) {
+    pipBtn.style.display = 'none';
+    return;
+  }
+
+  pipBtn.addEventListener('click', async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        pipBtn.textContent = 'Picture-in-Picture';
+      } else {
+        // Force cover/fill mode before entering PiP to avoid letterboxing
+        const originalFit = video.className;
+        video.className = 'fill'; // or 'crop'
+        
+        await video.requestPictureInPicture();
+        pipBtn.textContent = 'Exit PiP';
+      }
+    } catch (err) {
+      console.error('PiP error:', err);
+    }
+  });
+
+  video.addEventListener('enterpictureinpicture', () => {
+    pipBtn.textContent = 'Exit PiP';
+  });
+
+  video.addEventListener('leavepictureinpicture', () => {
+    pipBtn.textContent = 'Picture-in-Picture';
+    // Restore original fit mode
+    video.className = currentScale;
+  });
+}
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
@@ -900,6 +942,7 @@ setupScaleControl();
 setupFullscreen();
 setupOrientation();
 setupFooterInteraction();
+setupPictureInPicture();
 
         console.log("Playing:", streamUrl);
       } catch (err) {
