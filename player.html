@@ -388,6 +388,7 @@ body.in-fullscreen .fullscreen-controls {
     let currentScale = 'crop';
     let controlsTimeout;
     let isControlsVisible = false;
+	let preferredLang = null;
 
 const languageMap = {
   'tam': 'Tamil', 'ta': 'Tamil',
@@ -409,6 +410,19 @@ function getLanguageName(code) {
   const normalized = code.toLowerCase().substring(0, 3);
   const twoLetter = code.toLowerCase().substring(0, 2);
   return languageMap[normalized] || languageMap[twoLetter] || code || 'Unknown';
+}
+
+function getLanguageCode(languageName) {
+  if (!languageName) return null;
+  const nameLower = languageName.toLowerCase();
+  
+  // Find the code that maps to this language name
+  for (const [code, name] of Object.entries(languageMap)) {
+    if (name.toLowerCase() === nameLower) {
+      return code;
+    }
+  }
+  return null;
 }
 	
 function positionDropdown(button, menu) {
@@ -606,33 +620,50 @@ audioBtn.addEventListener('click', (e) => {
 });
 
 if (audioTracks.length > 0) {
-  // Try to find and select Tamil track
-  const tamilTrackIndex = audioTracks.findIndex(track => {
-    const lang = track.language.toLowerCase().substring(0, 3);
-    return lang === 'tam' || lang === 'ta';
+  let selectedTrackIndex = 0; // Default to first track
+  
+  // If preferred language was passed from index page
+if (preferredLang) {
+  // Convert language name (e.g., "Tamil") to code (e.g., "tam", "ta")
+  const preferredCode = getLanguageCode(preferredLang);
+  
+  const preferredTrackIndex = audioTracks.findIndex(track => {
+    const trackCode = track.language?.toLowerCase() || '';
+    
+    // Match if track code matches any form (2-letter or 3-letter)
+    if (preferredCode) {
+      return trackCode === preferredCode || 
+             trackCode.substring(0, 2) === preferredCode.substring(0, 2);
+    }
+    
+    // Fallback: match by full name
+    const langName = getLanguageName(track.language);
+    return langName.toLowerCase() === preferredLang.toLowerCase();
   });
   
-  if (tamilTrackIndex !== -1) {
-    const tamilTrack = audioTracks[tamilTrackIndex];
-    // Select Tamil audio
-    player.selectAudioLanguage(tamilTrack.language, tamilTrack.role);
-    audioBtn.textContent = `Audio: Tamil`;
-    
-    // Update active state in menu
-    audioMenu.querySelectorAll('.dropdown-item').forEach((item, index) => {
-      item.classList.remove('active');
-      if (index === tamilTrackIndex) {
-        item.classList.add('active');
-      }
-    });
-  } else {
-    // Default to first track if Tamil not found
-    let defaultLang = getLanguageName(audioTracks[0].language);
-    if (defaultLang === 'Unknown' || defaultLang === audioTracks[0].language) {
-      defaultLang = 'Track 1';
-    }
-    audioBtn.textContent = `Audio: ${defaultLang}`;
+  if (preferredTrackIndex !== -1) {
+    selectedTrackIndex = preferredTrackIndex;
   }
+}
+  
+  // Select the audio track
+  const selectedTrack = audioTracks[selectedTrackIndex];
+  player.selectAudioLanguage(selectedTrack.language, selectedTrack.role);
+  
+  // Update button text
+  let selectedLangName = getLanguageName(selectedTrack.language);
+  if (selectedLangName === 'Unknown' || selectedLangName === selectedTrack.language) {
+    selectedLangName = `Track ${selectedTrackIndex + 1}`;
+  }
+  audioBtn.textContent = `Audio: ${selectedLangName}`;
+  
+  // Update active state in menu
+  audioMenu.querySelectorAll('.dropdown-item').forEach((item, index) => {
+    item.classList.remove('active');
+    if (index === selectedTrackIndex) {
+      item.classList.add('active');
+    }
+  });
 }
     }
 
@@ -877,6 +908,7 @@ function setupPictureInPicture() {
     async function initPlayer() {
       const params = new URLSearchParams(window.location.search);
       const id = params.get('id');
+	  preferredLang = params.get('lang');
       
       try {
         const res = await fetch('https://playify.pages.dev/Ziotv.json');

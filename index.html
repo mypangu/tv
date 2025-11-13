@@ -211,8 +211,8 @@ select:focus {
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      max-width: 90%;
-      max-height: 90%;
+      max-width: 100%;
+      max-height: 100%;
       object-fit: contain;
     }
 
@@ -223,45 +223,7 @@ select:focus {
       position: relative;
       z-index: 1;
       line-height: 1.3;
-    }
-	
-.channel-name {
-  font-size: 0.95rem;
-  font-weight: 500;
-  display: block;
-  position: relative;
-  z-index: 1;
-  line-height: 1.3;
-  margin-bottom: 8px;
-}
-
-.channel-meta {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  justify-content: center;
-  position: relative;
-  z-index: 1;
-}
-
-.genre-tag, .lang-tag {
-  font-size: 0.7rem;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-
-.genre-tag {
-  background: rgba(102, 252, 241, 0.2);
-  color: #66fcf1;
-  border: 1px solid rgba(102, 252, 241, 0.3);
-}
-
-.lang-tag {
-  background: rgba(69, 162, 158, 0.2);
-  color: #66fcf1;
-  border: 1px solid rgba(69, 162, 158, 0.3);
-}	
+    }	
 
     .loading-more {
       text-align: center;
@@ -371,8 +333,8 @@ select:focus {
     const BATCH_SIZE = 20;
     let isLoading = false;
     let searchQuery = '';
-	let selectedLanguage = localStorage.getItem('selectedLanguage') || 'Tamil';
-	let selectedGenre = '';
+	let selectedLanguage = localStorage.getItem('selectedLanguage') || '';
+	let selectedGenre = sessionStorage.getItem('selectedGenre') || '';
 
     function normalizeName(name) {
       return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -393,19 +355,22 @@ function populateFilters() {
     option.value = lang;
     option.textContent = lang;
     if (lang === selectedLanguage) {
-		option.selected = true;
-	}
+      option.selected = true;
+    }
     languageFilter.appendChild(option);
   });
   
-  // Populate genre filter
-  genreFilter.innerHTML = '<option value="">All Genres</option>';
-  genres.forEach(genre => {
-    const option = document.createElement('option');
-    option.value = genre;
-    option.textContent = genre;
-    genreFilter.appendChild(option);
-  });
+// Populate genre filter
+genreFilter.innerHTML = '<option value="">All Genres</option>';
+genres.forEach(genre => {
+  const option = document.createElement('option');
+  option.value = genre;
+  option.textContent = genre;
+  if (genre === selectedGenre) {
+    option.selected = true;
+  }
+  genreFilter.appendChild(option);
+});
 }	
 
 async function loadChannels(forceRefresh = false) {
@@ -413,8 +378,15 @@ async function loadChannels(forceRefresh = false) {
   refreshBtn.classList.add('loading');
   
   try {
+    // Detect if running on localhost
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.hostname === '';
+    
     const url1 = 'https://playify.pages.dev/Ziotv.json' + (forceRefresh ? '?t=' + Date.now() : '');
-    const url2 = 'https://raw.githubusercontent.com/mypangu/tv/refs/heads/main/map.json' + (forceRefresh ? '?t=' + Date.now() : '');
+    const url2 = isLocalhost 
+      ? 'map.json' + (forceRefresh ? '?t=' + Date.now() : '')
+      : 'https://raw.githubusercontent.com/mypangu/tv/refs/heads/main/map.json' + (forceRefresh ? '?t=' + Date.now() : '');
     
     const [res1, res2] = await Promise.all([
       fetch(url1, { cache: forceRefresh ? 'reload' : 'default' }),
@@ -430,19 +402,31 @@ async function loadChannels(forceRefresh = false) {
       metaMap[normalizedName] = meta;
     });
     
-    allChannels = channelsData
-      .filter(ch => ch.name && ch.link)
-      .map(ch => {
-        const normalizedName = normalizeName(ch.name);
-        const meta = metaMap[normalizedName];
-        
-        return {
-          ...ch,
-          genre: meta?.genre || 'Other',
-          language: meta?.language || 'Unknown',
-          logo: meta?.logo || ch.logo
-        };
+allChannels = [];
+channelsData
+  .filter(ch => ch.name && ch.link)
+  .forEach(ch => {
+    const normalizedName = normalizeName(ch.name);
+    const meta = metaMap[normalizedName];
+    
+    // Get available languages from metadata (map.json)
+    let availableLanguages = meta?.language || 'Unknown';
+    
+    // Handle both array and string formats
+    if (!Array.isArray(availableLanguages)) {
+      availableLanguages = [availableLanguages];
+    }
+    
+    // Create a channel entry for EACH language
+    availableLanguages.forEach(language => {
+      allChannels.push({
+        ...ch,
+        genre: meta?.genre || 'Other',
+        language: language,
+        logo: meta?.logo || ch.logo
       });
+    });
+  });
 
     populateFilters();  // ✅ Fill dropdowns first
     applyFilters();     // ✅ Apply default Tamil filter immediately
@@ -455,14 +439,17 @@ async function loadChannels(forceRefresh = false) {
   }
 }
 
-    function updateStats() {
-      const stats = document.getElementById('stats');
-      if (searchQuery) {
-        stats.textContent = `Found ${filteredChannels.length} of ${allChannels.length} channels`;
-      } else {
-        stats.textContent = `${allChannels.length} channels available`;
-      }
-    }
+function updateStats() {
+  const stats = document.getElementById('stats');
+  
+  if (searchQuery || selectedLanguage || selectedGenre) {
+    // Show filtered count when any filter is active
+    stats.textContent = `Showing ${filteredChannels.length} of ${allChannels.length} channels`;
+  } else {
+    // Show total when no filters applied
+    stats.textContent = `${allChannels.length} channels available`;
+  }
+}
 
 function renderChannels(channels) {
   const container = document.getElementById('channels');
@@ -477,13 +464,9 @@ function renderChannels(channels) {
         <img src="${ch.logo || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'40\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E'}" alt="${ch.name}" loading="lazy">
       </div>
       <span class="channel-name">${ch.name}</span>
-      <div class="channel-meta">
-        <span class="genre-tag">${ch.genre}</span>
-        <span class="lang-tag">${ch.language}</span>
-      </div>
     `;
     div.addEventListener('click', () => {
-      window.location.href = `player.html?id=${id}`;
+      window.location.href = `player.html?id=${id}&lang=${ch.language}`;
     });
     fragment.appendChild(div);
   });
@@ -542,7 +525,7 @@ function checkAndLoadMore() {
     }
 
 function applyFilters() {
-  filteredChannels = allChannels.filter(ch => {
+  let filtered = allChannels.filter(ch => {
     const matchesSearch = !searchQuery || ch.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLanguage = !selectedLanguage || ch.language === selectedLanguage;
     const matchesGenre = !selectedGenre || ch.genre === selectedGenre;
@@ -550,6 +533,18 @@ function applyFilters() {
     return matchesSearch && matchesLanguage && matchesGenre;
   });
   
+  // If "All Languages" is selected, show only one entry per channel (first language)
+  if (!selectedLanguage) {
+    const seen = new Set();
+    filtered = filtered.filter(ch => {
+      const id = normalizeName(ch.name);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+  
+  filteredChannels = filtered;
   displayedCount = 0;
   document.getElementById('channels').innerHTML = '';
   updateStats();
@@ -569,14 +564,14 @@ document.getElementById('search').addEventListener('input', (e) => {
 // Language filter
 document.getElementById('languageFilter').addEventListener('change', (e) => {
   selectedLanguage = e.target.value;
-  localStorage.setItem('selectedLanguage', selectedLanguage); // ✅ save it
+  localStorage.setItem('selectedLanguage', selectedLanguage);
   applyFilters();
 });
-
 
 // Genre filter
 document.getElementById('genreFilter').addEventListener('change', (e) => {
   selectedGenre = e.target.value;
+  sessionStorage.setItem('selectedGenre', selectedGenre); // ✅ Save to session
   applyFilters();
 });
 
