@@ -368,7 +368,7 @@ body.in-fullscreen .fullscreen-controls {
       </div>
     </div>
 	
-	<button class="control-btn" id="pipBtn">Picture-in-Picture</button>
+	<button class="control-btn" id="pipBtn">PiP</button>
 
     <!-- <button class="control-btn" id="fullscreenBtn">Fullscreen</button> -->
 
@@ -842,7 +842,7 @@ function setupPictureInPicture() {
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-        pipBtn.textContent = 'Picture-in-Picture';
+        pipBtn.textContent = 'PiP';
       } else {
         // Force cover/fill mode before entering PiP to avoid letterboxing
         const originalFit = video.className;
@@ -861,7 +861,7 @@ function setupPictureInPicture() {
   });
 
   video.addEventListener('leavepictureinpicture', () => {
-    pipBtn.textContent = 'Picture-in-Picture';
+    pipBtn.textContent = 'PiP';
     // Restore original fit mode
     video.className = currentScale;
   });
