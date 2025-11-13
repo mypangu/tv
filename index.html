@@ -157,7 +157,7 @@ select:focus {
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 20px;
       margin-bottom: 40px;
     }
@@ -254,6 +254,11 @@ select:focus {
     font-size: 1.3rem;
   }
 
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 15px;
+  }
+
   input {
     min-width: 150px;
   }
@@ -280,6 +285,11 @@ select:focus {
   .refresh-btn {
     padding: 8px 12px;
     font-size: 0.85rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
   }
 }
   </style>
