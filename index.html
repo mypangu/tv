@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>PanguTV Live</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <meta name="theme-color" content="#0b0c10">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #0b0c10 0%, #1a1d29 100%);
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      min-height: 100vh;
+    }
+
+/* Disable text selection and user interactions */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Disable context menu and dragging on images */
+img {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* Allow text selection only in input fields */
+input, select, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  padding: 15px 20px;
+  background: rgba(31, 40, 51, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 2px 20px rgba(0,0,0,0.4);
+  z-index: 1000;
+}
+
+.header-row-1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  width: 100%;
+}
+
+.header-row-2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.header-row-1 input {
+  flex: unset;
+  width: 50%; /* adjust size */
+}
+
+header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #66fcf1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+input {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid #45a29e;
+  outline: none;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transition: all 0.3s;
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+    input::placeholder {
+      color: rgba(255,255,255,0.5);
+    }
+
+    input:focus {
+      border-color: #66fcf1;
+      background: rgba(255,255,255,0.15);
+    }
+	
+select {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: 2px solid #45a29e;
+  outline: none;
+  font-size: 0.95rem;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  transition: all 0.3s;
+  cursor: pointer;
+  flex: 1;
+}
+
+select option {
+  background: #1f2833;
+  color: #fff;
+}
+
+select:focus {
+  border-color: #66fcf1;
+  background: rgba(255,255,255,0.15);
+}	
+
+    .refresh-btn {
+      background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
+      border: none;
+      color: #0b0c10;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(102, 252, 241, 0.3);
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 252, 241, 0.4);
+    }
+
+    .refresh-btn:active {
+      transform: translateY(0);
+    }
+	
+.catchup-btn {
+  background: linear-gradient(135deg, #9b59b6 0%, #c678dd 100%);
+  border: none;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+  white-space: nowrap;
+}
+
+.catchup-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+}
+
+.catchup-btn:active {
+  transform: translateY(0);
+}	
+
+    .refresh-btn.loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .refresh-icon {
+      animation: none;
+    }
+
+    .refresh-btn.loading .refresh-icon {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .stats {
+      margin-bottom: 20px;
+      color: #66fcf1;
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .channel {
+      background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+      border-radius: 12px;
+      text-align: center;
+      padding: 15px;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .channel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(102, 252, 241, 0.1) 0%, rgba(69, 162, 158, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .channel:hover::before {
+      opacity: 1;
+    }
+
+    .channel:hover {
+      border-color: #45a29e;
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 252, 241, 0.2);
+    }
+
+    .channel-logo-wrapper {
+      position: relative;
+      width: 100%;
+      padding-bottom: 56.25%;
+      background: #000;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .channel img {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .channel span {
+      font-size: 0.95rem;
+      font-weight: 500;
+      display: block;
+      position: relative;
+      z-index: 1;
+      line-height: 1.3;
+    }	
+
+    .loading-more {
+      text-align: center;
+      padding: 40px 20px;
+      color: #66fcf1;
+      font-size: 1.1rem;
+    }
+
+    .spinner {
+      border: 3px solid rgba(102, 252, 241, 0.2);
+      border-top: 3px solid #66fcf1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    .no-results {
+      text-align: center;
+      padding: 60px 20px;
+      color: rgba(255,255,255,0.6);
+      font-size: 1.1rem;
+    }
+
+@media (max-width: 768px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 15px;
+  }
+
+  input {
+    min-width: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  header {
+    padding: 12px 15px;
+  }
+
+  header h1 {
+    font-size: 1.1rem;
+  }
+
+  .header-row-1, .header-row-2 {
+    gap: 8px;
+  }
+
+  input, select {
+    font-size: 0.85rem;
+    padding: 8px 12px;
+  }
+
+  .refresh-btn {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+	flex-shrink: 0;
+    white-space: nowrap; 
+  }
+  
+  .catchup-btn {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 380px) {
+  .refresh-btn span:not(.refresh-icon) {
+    display: none; 
+  }
+  
+  .refresh-btn {
+    padding: 8px; 
+  }
+  
+  .catchup-btn .catchup-text {
+  display: none;
+}
+
+.catchup-btn {
+  padding: 8px;
+}
+  
+  header h1 {
+    font-size: 1rem;
+  }
+}
+
+.header-inner {
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px; 
+}
+
+header h1 {
+  animation: glowPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes glowPulse {
+  0% { text-shadow: 0 0 5px #66fcf1; }
+  50% { text-shadow: 0 0 20px #66fcf1; }
+  100% { text-shadow: 0 0 5px #66fcf1; }
+}
+
+header h1 a {
+  color: #66fcf1;
+  text-decoration: none;
+}
+
+header h1 a:hover {
+  opacity: 0.8;
+}
+
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+<div class="header-row-1">
+  <h1><a href="index.html">📺 PanguTV</a></h1>
+  <button class="catchup-btn" onclick="window.location.href='catchupindex.html'">
+    <span>📅</span>
+    <span class="catchup-text">Catchup</span>
+  </button>
+  <input type="text" id="search" placeholder="Search channels..." />
+</div>
+
+    <div class="header-row-2">
+      <select id="languageFilter">
+        <option value="">All Languages</option>
+      </select>
+
+      <select id="genreFilter">
+        <option value="">All Genres</option>
+      </select>
+
+      <button class="refresh-btn" id="refreshBtn">
+        <span class="refresh-icon">↻</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+
+  <div class="container">
+    <div class="stats" id="stats">Loading channels...</div>
+    <div id="channels" class="grid"></div>
+    <div class="loading-more" id="loadingMore" style="display: none;">
+      <div class="spinner"></div>
+      Loading more channels...
+    </div>
+    <div class="no-results" id="noResults" style="display: none;">
+      No channels found matching your search.
+    </div>
+  </div>
+
+  <script>
+    let allChannels = [];
+    let filteredChannels = [];
+    let displayedCount = 0;
+    const BATCH_SIZE = 20;
+    let isLoading = false;
+    let searchQuery = '';
+	let selectedLanguage = localStorage.getItem('selectedLanguage') || '';
+	let selectedGenre = sessionStorage.getItem('selectedGenre') || '';
+
+    function normalizeName(name) {
+      return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    }
+	
+function populateFilters() {
+  const languageFilter = document.getElementById('languageFilter');
+  const genreFilter = document.getElementById('genreFilter');
+  
+  // Get unique languages and genres
+  const languages = [...new Set(allChannels.map(ch => ch.language))].sort();
+  const genres = [...new Set(allChannels.map(ch => ch.genre))].sort();
+  
+  // Populate language filter
+  languageFilter.innerHTML = '<option value="">All Languages</option>';
+  languages.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang;
+    option.textContent = lang;
+    if (lang === selectedLanguage) {
+      option.selected = true;
+    }
+    languageFilter.appendChild(option);
+  });
+  
+// Populate genre filter
+genreFilter.innerHTML = '<option value="">All Genres</option>';
+genres.forEach(genre => {
+  const option = document.createElement('option');
+  option.value = genre;
+  option.textContent = genre;
+  if (genre === selectedGenre) {
+    option.selected = true;
+  }
+  genreFilter.appendChild(option);
+});
+}	
+
+async function loadChannels(forceRefresh = false) {
+  const refreshBtn = document.getElementById('refreshBtn');
+  refreshBtn.classList.add('loading');
+  
+  try {
+    // Detect if running on localhost
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                        window.location.hostname === '127.0.0.1' || 
+                        window.location.hostname === '';
+    
+    const url = isLocalhost 
+	  ? 'live.json' + (forceRefresh ? '?t=' + Date.now() : '')
+	  : 'https://pangufiles.pages.dev/projects/tv/live.json' + (forceRefresh ? '?t=' + Date.now() : '');
+
+	const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
+	const channelsData = await res.json();
+    
+allChannels = [];
+channelsData
+  .filter(ch => ch.name && ch.link)
+  .forEach(ch => {
+    let availableLanguages = ch.language || 'Unknown';
+    
+    if (!Array.isArray(availableLanguages)) {
+      availableLanguages = [availableLanguages];
+    }
+    
+    availableLanguages.forEach(language => {
+      allChannels.push({
+        name: ch.name,
+        link: ch.link,
+        logo: ch.logo,
+        genre: ch.genre || 'Other',
+        language: language,
+        drmType: ch.drmType,
+        drmLicense: ch.drmLicense
+        // Note: cookie will be fetched dynamically in player.html
+      });
+    });
+  });
+
+    populateFilters();  // ✅ Fill dropdowns first
+    applyFilters();     // ✅ Apply default Tamil filter immediately
+
+  } catch (error) {
+    console.error('Error loading channels:', error);
+    document.getElementById('stats').textContent = 'Error loading channels. Please try again.';
+  } finally {
+    refreshBtn.classList.remove('loading');
+  }
+}
+
+function updateStats() {
+  const stats = document.getElementById('stats');
+  
+  if (searchQuery || selectedLanguage || selectedGenre) {
+    // Show filtered count when any filter is active
+    stats.textContent = `Showing ${filteredChannels.length} of ${allChannels.length} channels`;
+  } else {
+    // Show total when no filters applied
+    stats.textContent = `${allChannels.length} channels available`;
+  }
+}
+
+function renderChannels(channels) {
+  const container = document.getElementById('channels');
+  const fragment = document.createDocumentFragment();
+
+  channels.forEach(ch => {
+    const id = normalizeName(ch.name);
+    const div = document.createElement('div');
+    div.className = 'channel';
+    div.innerHTML = `
+      <div class="channel-logo-wrapper">
+        <img src="${ch.logo || 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 100\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'100\'/%3E%3Ctext x=\'50\' y=\'50\' font-family=\'Arial\' font-size=\'40\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E'}" alt="${ch.name}" loading="lazy">
+      </div>
+      <span class="channel-name">${ch.name}</span>
+    `;
+div.addEventListener('click', () => {
+  const url = ch.link || "";
+  const drmType = ch.drmType || "";  // ✅ Changed to drmType
+  
+  if (drmType === "aes-128") {
+    window.location.href = `player-hls.html?id=${id}&lang=${ch.language}`;
+  } else {
+    window.location.href = `player.html?id=${id}&lang=${ch.language}`;
+  }
+});
+
+    fragment.appendChild(div);
+  });
+
+  container.appendChild(fragment);
+}
+
+function loadMoreChannels() {
+  if (isLoading || displayedCount >= filteredChannels.length) {
+    document.getElementById('loadingMore').style.display = 'none';
+    return;
+  }
+
+  isLoading = true;
+  document.getElementById('loadingMore').style.display = 'block';
+
+  setTimeout(() => {
+    const nextBatch = filteredChannels.slice(displayedCount, displayedCount + BATCH_SIZE);
+    renderChannels(nextBatch);
+    displayedCount += nextBatch.length;
+    isLoading = false;
+
+    if (displayedCount >= filteredChannels.length) {
+      document.getElementById('loadingMore').style.display = 'none';
+    }
+
+    updateNoResults();
+    
+    // Check if we need to load more to fill the viewport
+    checkAndLoadMore();
+  }, 100);
+}
+
+function checkAndLoadMore() {
+  // Check if page height is less than viewport height + some buffer
+  const pageHeight = document.body.offsetHeight;
+  const viewportHeight = window.innerHeight;
+  
+  // If content doesn't fill the screen, load more
+  if (pageHeight < viewportHeight + 500 && displayedCount < filteredChannels.length && !isLoading) {
+    loadMoreChannels();
+  }
+}
+
+    function updateNoResults() {
+      const noResults = document.getElementById('noResults');
+      const channels = document.getElementById('channels');
+      
+      if (filteredChannels.length === 0 && searchQuery) {
+        noResults.style.display = 'block';
+        channels.style.display = 'none';
+      } else {
+        noResults.style.display = 'none';
+        channels.style.display = 'grid';
+      }
+    }
+
+function applyFilters() {
+  let filtered = allChannels.filter(ch => {
+    const matchesSearch = !searchQuery || ch.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesLanguage = !selectedLanguage || ch.language === selectedLanguage;
+    const matchesGenre = !selectedGenre || ch.genre === selectedGenre;
+    
+    return matchesSearch && matchesLanguage && matchesGenre;
+  });
+  
+  // If "All Languages" is selected, show only one entry per channel (first language)
+  if (!selectedLanguage) {
+    const seen = new Set();
+    filtered = filtered.filter(ch => {
+      const id = normalizeName(ch.name);
+      if (seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  }
+  
+  filteredChannels = filtered;
+  displayedCount = 0;
+  document.getElementById('channels').innerHTML = '';
+  updateStats();
+  loadMoreChannels();
+}
+
+    // Search with debounce
+let searchTimeout;
+document.getElementById('search').addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    searchQuery = e.target.value;
+    applyFilters();
+  }, 300);
+});
+
+// Language filter
+document.getElementById('languageFilter').addEventListener('change', (e) => {
+  selectedLanguage = e.target.value;
+  localStorage.setItem('selectedLanguage', selectedLanguage);
+  applyFilters();
+});
+
+// Genre filter
+document.getElementById('genreFilter').addEventListener('change', (e) => {
+  selectedGenre = e.target.value;
+  sessionStorage.setItem('selectedGenre', selectedGenre); // ✅ Save to session
+  applyFilters();
+});
+
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      loadChannels(true);
+    });
+
+    // Infinite scroll
+    let scrollTimeout;
+    window.addEventListener('scroll', () => {
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+          loadMoreChannels();
+        }
+      }, 100);
+    });
+
+    // Initial load
+    loadChannels();
+
+// Disable context menu (right-click) everywhere
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Disable long press context menu on touch devices
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (window.lastTouchEnd && (now - window.lastTouchEnd) < 300) {
+    e.preventDefault();
+  }
+  window.lastTouchEnd = now;
+}, { passive: false });
+
+// Disable text selection on drag
+document.addEventListener('selectstart', (e) => {
+  // Allow selection only in input/select elements
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});
+
+// Disable copy/paste operations (except in input fields)
+document.addEventListener('copy', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+document.addEventListener('cut', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+document.addEventListener('paste', (e) => {
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    return false;
+  }
+});
+	
+  </script>
+  <script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch((err) => console.log("SW Error:", err));
+  }
+</script>
+</body>
+</html>

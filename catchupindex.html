@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Catchup Channels | Pangu Catchup</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+<style>
+  body {
+    background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+    color: #e5e7eb;
+    min-height: 100vh;
+  }
+  .glass {
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+  .gradient-text {
+    background: linear-gradient(90deg, #a855f7, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.95);
+    border-color: rgba(168, 85, 247, 0.7);
+  }
+  .back-btn {
+    background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
+    color: #0b0c10;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 15px rgba(102, 252, 241, 0.3);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 252, 241, 0.4);
+  }
+  
+  select {
+    color: #e5e7eb !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23e5e7eb' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+  
+  select option {
+    background-color: #1e293b !important;
+    color: #e5e7eb !important;
+    padding: 8px;
+  }
+  
+  select option:checked {
+    background-color: #7c3aed !important;
+    color: #ffffff !important;
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .logo-badge {
+      width: 40px;
+      height: 40px;
+    }
+    .back-btn {
+      font-size: 0.7rem;
+      padding: 5px 10px;
+    }
+  }
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="border-b border-slate-800/70 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-3 py-2.5 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <div class="logo-badge w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-base font-bold">
+          C
+        </div>
+        <div>
+          <div class="text-xs uppercase tracking-wider text-slate-400">Pangu</div>
+          <div class="font-semibold text-slate-100 text-xs">Catchup</div>
+        </div>
+      </div>
+      <a href="index.html" class="back-btn">
+        <span>←</span>
+        <span>Live TV</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-6xl mx-auto px-3 py-4 md:py-6">
+    <div class="mb-4 md:mb-6">
+      <div class="mb-3">
+        <h1 class="text-xl md:text-3xl font-bold gradient-text">Catchup Channels</h1>
+        <p class="text-xs text-slate-400 mt-1">Browse available channels</p>
+      </div>
+      
+<!-- Filters -->
+<div class="flex flex-col gap-2">
+  <!-- Language and Genre filters in one row -->
+  <div class="grid grid-cols-2 gap-2">
+    <select
+      id="languageFilter"
+      class="px-3 py-2 text-sm rounded-lg border border-slate-700 focus:ring-2 focus:ring-purple-500 focus:outline-none w-full"
+      style="background-color: rgba(15, 23, 42, 0.9) !important; color: #e5e7eb !important;"
+    >
+      <option value="">All Languages</option>
+    </select>
+    
+    <select
+      id="genreFilter"
+      class="px-3 py-2 text-sm rounded-lg border border-slate-700 focus:ring-2 focus:ring-purple-500 focus:outline-none w-full"
+      style="background-color: rgba(15, 23, 42, 0.9) !important; color: #e5e7eb !important;"
+    >
+      <option value="">All Genres</option>
+    </select>
+  </div>
+  
+  <!-- Search input in next row -->
+  <input
+    id="searchInput"
+    type="text"
+    placeholder="Search channels..."
+    class="px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 focus:ring-2 focus:ring-purple-500 focus:outline-none w-full"
+  />
+</div>
+    </div>
+
+    <div id="status" class="text-xs text-slate-400 mb-3">Loading channels…</div>
+    <div id="grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4"></div>
+  </main>
+
+  <script>
+    const WORKER_BASE = "https://catchup.porus-in2012.workers.dev";
+let allChannels = [];
+let selectedLanguage = localStorage.getItem('selectedCatchupLanguage') || '';
+let selectedGenre = sessionStorage.getItem('selectedCatchupGenre') || '';
+
+async function decryptWorkerResponse(encryptedB64) {
+  const ENCRYPTION_KEY = "PUSHPA1210SUBBU1501PURUSHOTH1005"; // SAME KEY as worker
+  
+  try {
+    // Decode base64
+    const combined = Uint8Array.from(atob(encryptedB64), c => c.charCodeAt(0));
+    
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+    
+    // Import key
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(ENCRYPTION_KEY),
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+    );
+    
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      encrypted
+    );
+    
+    const plaintext = new TextDecoder().decode(decrypted);
+    return JSON.parse(plaintext);
+  } catch (err) {
+    throw new Error("Decryption failed: " + err.message);
+  }
+}
+
+    function extractDetailsHex(catchupLink) {
+      if (!catchupLink) return null;
+      const m = catchupLink.match(/details_([0-9a-fA-F]+)/);
+      return m ? m[1] : null;
+    }
+
+    function createCard(channel) {
+      const hex = extractDetailsHex(channel.catchup_link);
+      const detailsUrl = hex ? `details.html?hex=${encodeURIComponent(hex)}&id=${encodeURIComponent(channel.id)}` : null;
+
+      const div = document.createElement("div");
+      div.className = "glass card-hover rounded-xl border border-slate-800 overflow-hidden flex flex-col";
+
+      const logoSection = document.createElement("div");
+      logoSection.className = "p-3 pb-2 flex items-center gap-2.5";
+      logoSection.innerHTML = `
+        <img
+          src="${channel.img || ""}"
+          alt="${channel.link2 || ""}"
+          class="w-11 h-11 rounded-lg object-contain bg-slate-900 border border-slate-800 flex-shrink-0"
+          loading="lazy"
+        />
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-semibold text-slate-100 truncate">${channel.link2 || "Unknown"}</p>
+          <p class="text-[10px] text-slate-400 truncate">
+            ${channel.genre || "Unknown"}
+          </p>
+        </div>
+      `;
+
+      const footerSection = document.createElement("div");
+      footerSection.className = "px-3 pb-3 flex items-center justify-between gap-2";
+      
+      const langSpan = document.createElement("span");
+      langSpan.className = "text-[10px] text-slate-500 truncate";
+      langSpan.textContent = channel.lang || "Unknown";
+      
+      footerSection.appendChild(langSpan);
+
+      if (detailsUrl) {
+        const detailsLink = document.createElement("a");
+        detailsLink.href = detailsUrl;
+        detailsLink.className = "inline-flex items-center gap-1 text-[10px] font-medium px-2.5 py-1 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-sm flex-shrink-0";
+        detailsLink.innerHTML = `View`;
+        footerSection.appendChild(detailsLink);
+      } else {
+        const noCatchup = document.createElement("span");
+        noCatchup.className = "text-[10px] text-red-400";
+        noCatchup.textContent = "No catchup";
+        footerSection.appendChild(noCatchup);
+      }
+
+      div.appendChild(logoSection);
+      div.appendChild(footerSection);
+      
+      return div;
+    }
+
+function populateLanguageFilter() {
+  const languageFilter = document.getElementById('languageFilter');
+  const languages = [...new Set(allChannels.map(ch => ch.lang).filter(Boolean))].sort();
+  
+  languageFilter.innerHTML = '<option value="">All Languages</option>';
+  languages.forEach(lang => {
+    const option = document.createElement('option');
+    option.value = lang;
+    option.textContent = lang;
+    languageFilter.appendChild(option);
+  });
+  
+  // Restore saved language preference
+  if (selectedLanguage) {
+    languageFilter.value = selectedLanguage;
+  }
+}
+	
+function populateGenreFilter() {
+  const genreFilter = document.getElementById('genreFilter');
+  const genres = [...new Set(allChannels.map(ch => ch.genre).filter(Boolean))].sort();
+  
+  genreFilter.innerHTML = '<option value="">All Genres</option>';
+  genres.forEach(genre => {
+    const option = document.createElement('option');
+    option.value = genre;
+    option.textContent = genre;
+    genreFilter.appendChild(option);
+  });
+  
+  // Restore saved genre preference for current session
+  if (selectedGenre) {
+    genreFilter.value = selectedGenre;
+  }
+}	
+
+function render(searchQuery = '', languageFilter = '', genreFilter = '') {
+  const grid = document.getElementById('grid');
+  const statusEl = document.getElementById('status');
+  
+  grid.innerHTML = "";
+  const q = searchQuery.trim().toLowerCase();
+  
+  const filtered = allChannels.filter((ch) => {
+    const matchesSearch = !q || `${ch.link2} ${ch.name} ${ch.genre} ${ch.lang}`.toLowerCase().includes(q);
+    const matchesLanguage = !languageFilter || ch.lang === languageFilter;
+    const matchesGenre = !genreFilter || ch.genre === genreFilter;
+    return matchesSearch && matchesLanguage && matchesGenre;
+  });
+
+  if (filtered.length === 0) {
+    statusEl.textContent = "No channels found";
+    return;
+  }
+
+  statusEl.textContent = `${filtered.length} channel${filtered.length !== 1 ? 's' : ''}`;
+
+  filtered.forEach((ch) => {
+    grid.appendChild(createCard(ch));
+  });
+}
+
+async function loadChannels() {
+  const statusEl = document.getElementById("status");
+
+  try {
+    const res = await fetch(WORKER_BASE + "/");
+	const encryptedResponse = await res.json();
+	const data = await decryptWorkerResponse(encryptedResponse.encrypted);
+    //if (!Array.isArray(data)) throw new Error("Invalid data format");
+
+    allChannels = data;
+    populateLanguageFilter();
+    populateGenreFilter();
+    
+    // Define the elements first
+    const searchInput = document.getElementById("searchInput");
+    const languageFilter = document.getElementById("languageFilter");
+    const genreFilter = document.getElementById("genreFilter");
+    
+    // Then apply saved filters on load
+    render(searchInput.value, selectedLanguage, selectedGenre);
+
+    // Add event listeners
+    searchInput.addEventListener("input", () => {
+      render(searchInput.value, languageFilter.value, genreFilter.value);
+    });
+
+    languageFilter.addEventListener("change", () => {
+      selectedLanguage = languageFilter.value;
+      localStorage.setItem('selectedCatchupLanguage', selectedLanguage);
+      render(searchInput.value, selectedLanguage, genreFilter.value);
+    });
+
+    genreFilter.addEventListener("change", () => {
+      selectedGenre = genreFilter.value;
+      sessionStorage.setItem('selectedCatchupGenre', selectedGenre);
+      render(searchInput.value, languageFilter.value, selectedGenre);
+    });
+    
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Failed to load channels";
+    statusEl.classList.add("text-red-400");
+  }
+}
+
+    loadChannels();
+  </script>
+</body>
+</html>

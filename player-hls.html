@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <title>Live TV Player</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.plyr.io/3.6.2/plyr.css" />
+  <script src="https://cdn.plyr.io/3.6.3/plyr.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.dashjs.org/latest/dash.all.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body {
+      background: #0b0c10;
+      color: #fff;
+      font-family: "Poppins", sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+      z-index: 2000;
+      flex-shrink: 0;
+	  min-height: 60px; 
+	  height: auto;
+    }
+
+    header.hidden {
+      transform: translateY(-100%);
+      transition: transform 0.3s;
+    }
+
+    header img {
+      height: 45px;
+      width: 45px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-right: 15px;
+      background: rgba(0,0,0,0.3);
+      padding: 4px;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      flex: 1;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    header button {
+      background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
+      border: none;
+      color: #0b0c10;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 0.9rem;
+    }
+
+    header button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
+    }
+
+    .player-wrapper {
+      flex: 0 0 auto;
+	  height: 40vh; 
+	  max-height: 40vh;
+      position: relative;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      width: 100%;
+      min-height: 0;
+    }
+
+    .plyr {
+      width: 100%;
+      height: 100%;
+    }
+
+    .plyr__video-wrapper {
+      height: 100%;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      outline: none;
+	  object-fit: contain;
+    }
+	
+	body.in-fullscreen video {
+	  object-fit: fill;
+	}
+
+    .error-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #ff6b6b;
+      font-size: 1.1rem;
+      padding: 20px;
+      background: rgba(31, 40, 51, 0.9);
+      border-radius: 12px;
+      border: 2px solid #ff6b6b;
+      max-width: 80%;
+      z-index: 10;
+      display: none;
+    }
+
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.4);
+      z-index: 2000;
+      flex-shrink: 0;
+	  min-height: 50px; 
+	  height: auto;
+      transition: none;
+    }
+
+    body:not(.in-fullscreen) footer {
+      display: flex !important;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    body.in-fullscreen footer {
+      display: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    body.in-fullscreen footer.visible {
+      display: flex !important;
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .epg-section {
+      flex: 1 1 auto;
+      background: linear-gradient(180deg, #0b0c10 0%, #1a1d29 100%);
+      overflow: hidden;
+      padding: 0 15px 15px 15px;
+      min-height: 0;
+	  max-height: calc(60vh - 120px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .epg-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: linear-gradient(180deg, #0b0c10 0%, #1a1d29 100%);
+      margin-bottom: 15px;
+      padding: 15px 0 10px 0;
+      border-bottom: 2px solid #45a29e;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .epg-header h3 {
+      margin: 0;
+      font-size: 1.2rem;
+      color: #66fcf1;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .epg-date-controls {
+      display: flex;
+      align-items: center;
+    }
+
+    .epg-date-dropdown {
+      background: rgba(69, 162, 158, 0.9);
+      border: 1px solid #66fcf1;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.3s;
+      white-space: nowrap;
+      user-select: none;
+      outline: none;
+      min-width: 150px;
+      font-family: "Poppins", sans-serif;
+    }
+
+    .epg-date-dropdown:hover {
+      background: #66fcf1;
+      color: #0b0c10;
+    }
+
+    .epg-date-dropdown:focus {
+      border-color: #66fcf1;
+      box-shadow: 0 0 10px rgba(102, 252, 241, 0.3);
+    }
+
+    .epg-date-dropdown option {
+      background: #1f2833;
+      color: #fff;
+      padding: 8px;
+    }
+
+    .epg-scroll-container {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+    }
+
+    .epg-timeline {
+      display: flex;
+      gap: 15px;
+      overflow-x: auto;
+      overflow-y: auto;
+      padding-bottom: 10px;
+      scroll-snap-type: x proximity;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .epg-scroll-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(69, 162, 158, 0.9);
+      border: 2px solid #66fcf1;
+      color: #fff;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.5rem;
+      font-weight: bold;
+      transition: all 0.3s;
+      z-index: 10;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      user-select: none;
+    }
+
+    .epg-scroll-btn:hover {
+      background: #66fcf1;
+      color: #0b0c10;
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    .epg-scroll-btn:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    .epg-scroll-btn.left {
+      left: 10px;
+    }
+
+    .epg-scroll-btn.right {
+      right: 10px;
+    }
+
+    @media (min-width: 1024px) {
+      .epg-scroll-btn {
+        display: flex;
+      }
+    }
+
+    .epg-loading {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+      padding: 40px 20px;
+      width: 100%;
+    }
+
+    .epg-program {
+      min-width: 200px;
+      max-width: 200px;
+      background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s;
+      border: 2px solid transparent;
+      scroll-snap-align: start;
+    }
+
+    .epg-program:hover {
+      border-color: #45a29e;
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(102, 252, 241, 0.2);
+    }
+
+    .epg-program.current {
+      border-color: #66fcf1;
+      box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
+    }
+
+    .epg-poster {
+      position: relative;
+      width: 100%;
+      padding-bottom: 140%;
+      background: #000;
+      overflow: hidden;
+    }
+
+    .epg-live-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: #66fcf1;
+      color: #0b0c10;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .epg-poster img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .epg-info {
+      padding: 12px;
+    }
+
+    .epg-time {
+      font-size: 0.75rem;
+      color: #66fcf1;
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+
+    .epg-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #fff;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      line-height: 1.3;
+    }
+
+    .epg-category {
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 5px;
+    }
+
+    .epg-duration {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .epg-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 5000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .epg-modal.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .epg-modal-content {
+      background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+      border-radius: 16px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative;
+    }
+
+    .epg-modal-close {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: #fff;
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 1.5rem;
+      line-height: 1;
+      transition: all 0.3s;
+      z-index: 1;
+    }
+
+    .epg-modal-close:hover {
+      background: #66fcf1;
+      color: #0b0c10;
+    }
+
+    .epg-modal-poster {
+      width: 100%;
+      height: 300px;
+      object-fit: cover;
+      border-radius: 16px 16px 0 0;
+    }
+
+    .epg-modal-body {
+      padding: 20px;
+    }
+
+    .epg-modal-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #66fcf1;
+      margin-bottom: 10px;
+    }
+
+    .epg-modal-meta {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .epg-modal-meta span {
+      background: rgba(102, 252, 241, 0.1);
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+
+    .epg-modal-description {
+      color: rgba(255,255,255,0.9);
+      line-height: 1.6;
+      margin-bottom: 15px;
+    }
+
+    .epg-modal-detail {
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.8);
+      font-size: 0.9rem;
+    }
+
+    .epg-modal-detail strong {
+      color: #66fcf1;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    body:not(.in-fullscreen) .player-wrapper {
+      flex: 0 0 auto;
+      height: 40vh;
+      max-height: 40vh;
+    }
+
+    body:not(.in-fullscreen) .epg-section {
+      display: flex;
+	  flex: 1 1 auto; 
+	  max-height: calc(60vh - 120px);
+    }
+
+    body.in-fullscreen .epg-section {
+      display: none;
+    }
+
+    .epg-timeline::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    .epg-timeline::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
+
+    .epg-timeline::-webkit-scrollbar-thumb {
+      background: #45a29e;
+      border-radius: 4px;
+    }
+
+    .epg-timeline::-webkit-scrollbar-thumb:hover {
+      background: #66fcf1;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 10px 15px;
+      }
+
+      header h1 {
+        font-size: 1rem;
+      }
+
+      header img {
+        height: 35px;
+        width: 35px;
+      }
+
+      header button {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+
+      .epg-program {
+        min-width: 160px;
+        max-width: 160px;
+      }
+
+      .epg-modal-poster {
+        height: 250px;
+      }
+
+      .epg-header h3 {
+        font-size: 1rem;
+      }
+
+      .epg-date-dropdown {
+        min-width: auto;
+        font-size: 0.8rem;
+        padding: 6px 10px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .epg-program {
+        min-width: 140px;
+        max-width: 140px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header id="header">
+    <img id="logo" src="" alt="Channel Logo" />
+    <h1 id="title">Loading...</h1>
+    <button onclick="window.location.href='index.html'">← Back</button>
+  </header>
+
+  <div class="player-wrapper" id="playerWrapper">
+    <video id="videoPlayer" playsinline preload="auto" crossorigin="anonymous" webkit-playsinline></video>
+    <div class="error-message" id="error"></div>
+  </div>
+
+  <div class="epg-section" id="epgSection">
+    <div class="epg-header">
+      <h3>📺 Program Guide</h3>
+      <div class="epg-date-controls">
+        <select class="epg-date-dropdown" id="epgDateDropdown">
+          <option value="0">Today</option>
+        </select>
+      </div>
+    </div>
+    <div class="epg-scroll-container">
+      <button class="epg-scroll-btn left" id="scrollLeftBtn">‹</button>
+      <div class="epg-timeline" id="epgTimeline">
+        <div class="epg-loading">Loading programs...</div>
+      </div>
+      <button class="epg-scroll-btn right" id="scrollRightBtn">›</button>
+    </div>
+  </div>
+
+  <footer id="controlsFooter"></footer>
+
+<script>
+    let hls;
+    let dashPlayer;
+    let player;
+    let currentEPGOffset = 0;
+    let currentChannelEPG = null;
+    let lastTapTime = 0;
+
+    const languageMap = {
+      'tam': 'Tamil', 'ta': 'Tamil',
+      'tel': 'Telugu', 'te': 'Telugu',
+      'mal': 'Malayalam', 'ml': 'Malayalam',
+      'kan': 'Kannada', 'kn': 'Kannada',
+      'hin': 'Hindi', 'hi': 'Hindi',
+      'ben': 'Bengali', 'bn': 'Bengali',
+      'guj': 'Gujarati', 'gu': 'Gujarati',
+      'ori': 'Odia', 'or': 'Odia',
+      'mar': 'Marathi', 'mr': 'Marathi',
+      'eng': 'English', 'en': 'English',
+      'pan': 'Punjabi', 'pa': 'Punjabi',
+      'und': 'Unknown'
+    };
+
+    function getLanguageName(code) {
+      if (!code) return 'Unknown';
+      const normalized = code.toLowerCase().substring(0, 3);
+      const twoLetter = code.toLowerCase().substring(0, 2);
+      return languageMap[normalized] || languageMap[twoLetter] || code || 'Unknown';
+    }
+
+    function showError(message) {
+      const error = document.getElementById('error');
+      const video = document.getElementById('videoPlayer');
+      if (message) {
+        video.style.display = 'none';
+        error.textContent = message;
+        error.style.display = 'block';
+      } else {
+        error.style.display = 'none';
+      }
+    }
+
+    function setupEPGScrollButtons() {
+      const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+      const scrollRightBtn = document.getElementById('scrollRightBtn');
+      const epgTimeline = document.getElementById('epgTimeline');
+
+      if (!scrollLeftBtn || !scrollRightBtn || !epgTimeline) return;
+
+      scrollLeftBtn.addEventListener('click', () => {
+        epgTimeline.scrollBy({ left: -300, behavior: 'smooth' });
+      });
+
+      scrollRightBtn.addEventListener('click', () => {
+        epgTimeline.scrollBy({ left: 300, behavior: 'smooth' });
+      });
+    }
+
+    function setupDateNavigation() {
+      const dropdown = document.getElementById('epgDateDropdown');
+
+      if (!dropdown) return;
+
+      function populateDropdown() {
+        dropdown.innerHTML = '';
+        const today = new Date();
+
+        for (let i = -7; i <= 6; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+
+          const option = document.createElement('option');
+          option.value = i;
+
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+          if (i === 0) {
+            option.textContent = `Today (${dayName}, ${monthDay})`;
+          } else if (i === -1) {
+            option.textContent = `Yesterday (${dayName}, ${monthDay})`;
+          } else if (i === 1) {
+            option.textContent = `Tomorrow (${dayName}, ${monthDay})`;
+          } else if (i < 0) {
+            option.textContent = `${Math.abs(i)} days ago (${dayName}, ${monthDay})`;
+          } else {
+            option.textContent = `In ${i} days (${dayName}, ${monthDay})`;
+          }
+
+          dropdown.appendChild(option);
+        }
+
+        dropdown.value = currentEPGOffset;
+      }
+
+      dropdown.addEventListener('change', async (e) => {
+        const newOffset = parseInt(e.target.value);
+        if (!isNaN(newOffset) && currentChannelEPG) {
+          currentEPGOffset = newOffset;
+          await loadEPG(currentChannelEPG, currentEPGOffset);
+        }
+      });
+
+      populateDropdown();
+    }
+
+    async function loadEPG(epgUrl, offset = 0) {
+      const epgTimeline = document.getElementById('epgTimeline');
+
+      if (!currentChannelEPG) {
+        currentChannelEPG = epgUrl;
+      }
+
+      epgTimeline.innerHTML = '<div class="epg-loading">Loading programs...</div>';
+
+      try {
+        let modifiedUrl = epgUrl;
+
+        if (modifiedUrl.includes('offset=')) {
+          modifiedUrl = modifiedUrl.replace(/offset=-?\d+/, `offset=${offset}`);
+        } else {
+          const separator = modifiedUrl.includes('?') ? '&' : '?';
+          modifiedUrl += `${separator}offset=${offset}`;
+        }
+
+        const separator = modifiedUrl.includes('?') ? '&' : '?';
+        const cacheBustedUrl = `${modifiedUrl}${separator}_t=${Date.now()}`;
+
+        const response = await fetch(cacheBustedUrl, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        const data = await response.json();
+
+        if (data.epg && data.epg.length > 0) {
+          renderEPG(data.epg);
+
+          const dropdown = document.getElementById('epgDateDropdown');
+          if (dropdown) {
+            dropdown.value = offset;
+          }
+        } else {
+          epgTimeline.innerHTML = '<div class="epg-loading">No program data available</div>';
+        }
+      } catch (error) {
+        console.error('Error loading EPG:', error);
+        epgTimeline.innerHTML = '<div class="epg-loading">Failed to load program guide</div>';
+      }
+    }
+
+    function renderEPG(programs) {
+      const epgTimeline = document.getElementById('epgTimeline');
+      const now = Date.now();
+
+      epgTimeline.innerHTML = '';
+
+      let currentIndex = programs.findIndex(program => {
+        return now >= program.startEpoch && now <= program.endEpoch;
+      });
+
+      if (currentIndex === -1) {
+        currentIndex = programs.findIndex(program => program.startEpoch > now);
+      }
+
+      if (currentIndex === -1) {
+        currentIndex = 0;
+      }
+
+      programs.forEach((program, index) => {
+        const startTime = program.startEpoch;
+        const endTime = program.endEpoch;
+        const isCurrent = now >= startTime && now <= endTime;
+
+        const programCard = document.createElement('div');
+        programCard.className = `epg-program ${isCurrent ? 'current' : ''}`;
+
+        const posterUrl = program.episodePoster
+          ? `https://jiotvimages.cdn.jio.com/dare_images/shows/${program.episodePoster}`
+          : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 140\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'140\'/%3E%3Ctext x=\'50\' y=\'70\' font-family=\'Arial\' font-size=\'30\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E';
+
+        programCard.innerHTML = `
+          <div class="epg-poster">
+            ${isCurrent ? '<div class="epg-live-badge">▶ LIVE NOW</div>' : ''}
+            <img src="${posterUrl}" alt="${program.showname}" loading="lazy">
+          </div>
+          <div class="epg-info">
+            <div class="epg-time">${program.showtime} - ${program.endtime}</div>
+            <div class="epg-title">${program.showname}</div>
+          </div>
+        `;
+
+        programCard.addEventListener('click', () => showEPGDetails(program));
+
+        epgTimeline.appendChild(programCard);
+      });
+
+      const currentCard = epgTimeline.children[currentIndex];
+      if (currentCard) {
+        currentCard.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+      }
+    }
+
+    function showEPGDetails(program) {
+      let modal = document.getElementById('epgModal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'epgModal';
+        modal.className = 'epg-modal';
+        document.body.appendChild(modal);
+
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.classList.remove('show');
+          }
+        });
+      }
+
+      const posterUrl = program.episodePoster
+        ? `https://jiotvimages.cdn.jio.com/dare_images/shows/${program.episodePoster}`
+        : '';
+
+      const genres = Array.isArray(program.showGenre) ? program.showGenre.join(', ') : program.showGenre || 'N/A';
+
+      modal.innerHTML = `
+        <div class="epg-modal-content">
+          <button class="epg-modal-close" onclick="document.getElementById('epgModal').classList.remove('show')">×</button>
+          ${posterUrl ? `<img src="${posterUrl}" alt="${program.showname}" class="epg-modal-poster">` : ''}
+          <div class="epg-modal-body">
+            <h2 class="epg-modal-title">${program.showname}</h2>
+            <div class="epg-modal-meta">
+              <span>⏰ ${program.showtime} - ${program.endtime}</span>
+              <span>⏱️ ${program.duration} mins</span>
+              <span>📺 ${program.showCategory || 'Program'}</span>
+            </div>
+            ${program.description ? `<p class="epg-modal-description">${program.description}</p>` : ''}
+            ${program.director ? `<div class="epg-modal-detail"><strong>Director:</strong> ${program.director}</div>` : ''}
+            ${program.starCast ? `<div class="epg-modal-detail"><strong>Cast:</strong> ${program.starCast}</div>` : ''}
+            <div class="epg-modal-detail"><strong>Genre:</strong> ${genres}</div>
+            ${program.pcr ? `<div class="epg-modal-detail"><strong>Rating:</strong> ${program.pcr}</div>` : ''}
+          </div>
+        </div>
+      `;
+
+      modal.classList.add('show');
+    }
+
+    async function lockOrientation(orientation) {
+      try {
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock(orientation);
+          console.log('Orientation locked via screen.orientation.lock');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.orientation.lock failed:', e);
+      }
+
+      try {
+        if (screen.lockOrientation) {
+          await screen.lockOrientation(orientation);
+          console.log('Orientation locked via screen.lockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.lockOrientation failed:', e);
+      }
+
+      try {
+        if (screen.mozLockOrientation) {
+          await screen.mozLockOrientation(orientation);
+          console.log('Orientation locked via screen.mozLockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.mozLockOrientation failed:', e);
+      }
+
+      try {
+        if (screen.msLockOrientation) {
+          await screen.msLockOrientation(orientation);
+          console.log('Orientation locked via screen.msLockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.msLockOrientation failed:', e);
+      }
+
+      console.warn('No orientation lock method available');
+      return false;
+    }
+
+    function unlockOrientation() {
+      try {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock();
+          console.log('Orientation unlocked via screen.orientation.unlock');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.orientation.unlock failed:', e);
+      }
+
+      try {
+        if (screen.unlockOrientation) {
+          screen.unlockOrientation();
+          console.log('Orientation unlocked via screen.unlockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.unlockOrientation failed:', e);
+      }
+
+      try {
+        if (screen.mozUnlockOrientation) {
+          screen.mozUnlockOrientation();
+          console.log('Orientation unlocked via screen.mozUnlockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.mozUnlockOrientation failed:', e);
+      }
+
+      try {
+        if (screen.msUnlockOrientation) {
+          screen.msUnlockOrientation();
+          console.log('Orientation unlocked via screen.msUnlockOrientation');
+          return true;
+        }
+      } catch (e) {
+        console.log('screen.msUnlockOrientation failed:', e);
+      }
+
+      return false;
+    }
+
+    async function toggleFullscreenWithOrientation() {
+      const video = document.getElementById('videoPlayer');
+      
+      if (!document.fullscreenElement && !document.webkitFullscreenElement && 
+          !document.mozFullScreenElement && !document.msFullscreenElement) {
+        try {
+          if (video.requestFullscreen) {
+            await video.requestFullscreen();
+          } else if (video.webkitRequestFullscreen) {
+            await video.webkitRequestFullscreen();
+          } else if (video.webkitEnterFullscreen) {
+            video.webkitEnterFullscreen();
+          } else if (video.mozRequestFullScreen) {
+            await video.mozRequestFullScreen();
+          } else if (video.msRequestFullscreen) {
+            await video.msRequestFullscreen();
+          }
+
+          setTimeout(async () => {
+            await lockOrientation('landscape');
+          }, 100);
+
+        } catch (err) {
+          console.error('Fullscreen request failed:', err);
+        }
+      } else {
+        try {
+          unlockOrientation();
+          
+          if (document.exitFullscreen) {
+            await document.exitFullscreen();
+          } else if (document.webkitExitFullscreen) {
+            await document.webkitExitFullscreen();
+          } else if (document.mozCancelFullScreen) {
+            await document.mozCancelFullScreen();
+          } else if (document.msExitFullscreen) {
+            await document.msExitFullscreen();
+          }
+        } catch (err) {
+          console.error('Exit fullscreen failed:', err);
+        }
+      }
+    }
+
+    function setupDoubleTapFullscreen() {
+      const video = document.getElementById('videoPlayer');
+      const playerWrapper = document.getElementById('playerWrapper');
+
+playerWrapper.addEventListener('touchend', async (e) => {
+  const currentTime = new Date().getTime();
+  const tapLength = currentTime - lastTapTime;
+
+  if (tapLength < 300 && tapLength > 0) {
+    e.preventDefault();
+    await toggleFullscreenWithOrientation();
+    
+    // Show Plyr controls after entering fullscreen
+    if (player) {
+      player.toggleControls(true);
+    }
+  }
+
+  lastTapTime = currentTime;
+});
+
+      playerWrapper.addEventListener('dblclick', async (e) => {
+        e.preventDefault();
+        await toggleFullscreenWithOrientation();
+      });
+    }
+
+    async function initPlayer() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      const preferredLang = params.get('lang');
+	  
+	  let channel = null;
+
+      try {
+        const isLocalhost = window.location.hostname === 'localhost' || 
+                            window.location.hostname === '127.0.0.1';
+
+        const url = isLocalhost 
+          ? 'live.json'
+          : 'https://pangufiles.pages.dev/projects/tv/live.json';
+
+        const res = await fetch(url);
+        let channels = await res.json();
+        channels = channels.filter(ch => ch.name && ch.link);
+
+        function normalizeName(name) {
+          return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+        }
+
+channel = channels.find(ch => normalizeName(ch.name) === id);
+
+if (!channel) {
+  showError('Channel not found. Please go back and select a valid channel.');
+  return;
+}
+
+// Collect all available stream links
+const streamLinks = [];
+if (channel.link) streamLinks.push(channel.link.trim());
+if (channel.link1) streamLinks.push(channel.link1.trim());
+if (channel.link2) streamLinks.push(channel.link2.trim());
+if (channel.link3) streamLinks.push(channel.link3.trim());
+if (channel.link4) streamLinks.push(channel.link4.trim());
+
+if (streamLinks.length === 0) {
+  showError('No stream links available for this channel.');
+  return;
+}
+
+let currentLinkIndex = 0;
+
+        document.getElementById('title').innerText = channel.name;
+        document.getElementById('logo').src = channel.logo || '';
+        document.title = channel.name + ' - Live TV';
+
+const video = document.getElementById('videoPlayer');
+
+async function tryNextStream() {
+  if (currentLinkIndex >= streamLinks.length) {
+    showError('All stream links failed. Please try again later.');
+    return;
+  }
+
+  const streamUrl = streamLinks[currentLinkIndex];
+  console.log(`Trying stream ${currentLinkIndex + 1}/${streamLinks.length}: ${streamUrl}`);
+
+  // Detect stream type - prioritize explicit extensions
+  const lowerUrl = streamUrl.toLowerCase();
+  const isDash = lowerUrl.endsWith('.mpd') || (lowerUrl.includes('.mpd') && !lowerUrl.includes('.m3u8'));
+  const isHls = !isDash; // Everything else is HLS by default
+        
+        console.log(`Stream type: ${isDash ? 'DASH (.mpd)' : 'HLS (.m3u8)'}`);
+        console.log("Playing:", streamUrl);
+
+        // ========== DASH PLAYBACK ==========
+        if (isDash && typeof dashjs !== 'undefined') {
+          console.log('Initializing DASH player...');
+          
+          dashPlayer = dashjs.MediaPlayer().create();
+          
+          dashPlayer.initialize(video, streamUrl, false);
+          
+          // DASH Configuration
+          dashPlayer.updateSettings({
+            streaming: {
+              buffer: {
+                fastSwitchEnabled: true,
+                bufferTimeAtTopQuality: 20,
+                bufferTimeAtTopQualityLongForm: 30,
+                initialBufferLevel: 3,
+                stableBufferTime: 10,
+                bufferTimeDefault: 15
+              },
+              abr: {
+                autoSwitchBitrate: {
+                  video: true,
+                  audio: true
+                },
+                initialBitrate: {
+                  video: -1,
+                  audio: -1
+                },
+                maxBitrate: {
+                  video: -1,
+                  audio: -1
+                }
+              },
+              retryAttempts: {
+                MPD: 3,
+                XLinkExpansion: 1,
+                MediaSegment: 5,
+                InitializationSegment: 3
+              },
+              retryIntervals: {
+                MPD: 500,
+                MediaSegment: 1000,
+                InitializationSegment: 1000
+              }
+            }
+          });
+          
+          // DASH Event Listeners
+          dashPlayer.on(dashjs.MediaPlayer.events.ERROR, function(e) {
+            console.error('DASH Error:', e);
+            if (e.error && e.error.code) {
+              showError(`Playback error: ${e.error.message || 'Unknown error'}`);
+            }
+          });
+          
+          dashPlayer.on(dashjs.MediaPlayer.events.MANIFEST_LOADED, function() {
+            console.log('DASH manifest loaded successfully');
+          });
+          
+          dashPlayer.on(dashjs.MediaPlayer.events.STREAM_INITIALIZED, function() {
+            console.log('DASH stream initialized');
+          });
+          
+          dashPlayer.on(dashjs.MediaPlayer.events.PLAYBACK_STARTED, function() {
+            console.log('DASH playback started');
+          });
+          
+          dashPlayer.on(dashjs.MediaPlayer.events.QUALITY_CHANGE_RENDERED, function(e) {
+            if (e.mediaType === 'video') {
+              const bitrate = dashPlayer.getBitrateInfoListFor('video')[e.newQuality];
+              console.log(`Quality changed to: ${bitrate.height}p @ ${(bitrate.bitrate / 1000).toFixed(0)}kbps`);
+            }
+          });
+
+          // Initialize Plyr for DASH
+player = new Plyr(video, {
+  controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'],
+  storage: { enabled: false },
+  autoplay: false,
+  resetOnEnd: false,
+  hideControls: true,
+  clickToPlay: false,  // Changed from true
+  keyboard: { focused: true, global: true }
+});
+          
+          // Wait for buffering before playing
+          const tryPlay = async () => {
+            try {
+              await video.play();
+              console.log('DASH playback started');
+            } catch (e) {
+              console.log('Autoplay prevented, waiting for user interaction');
+              video.addEventListener('click', () => video.play(), { once: true });
+            }
+          };
+          
+          // Wait for initial buffer
+          let bufferCheckInterval = setInterval(() => {
+            const buffered = video.buffered;
+            if (buffered.length > 0 && buffered.end(0) - video.currentTime > 2) {
+              clearInterval(bufferCheckInterval);
+              tryPlay();
+            }
+          }, 500);
+          
+          // Clear interval after 10 seconds regardless
+          setTimeout(() => clearInterval(bufferCheckInterval), 10000);
+          
+          setupDoubleTapFullscreen();
+
+          setTimeout(() => {
+            const fullscreenBtn = document.querySelector('.plyr__controls button[data-plyr="fullscreen"]');
+            if (fullscreenBtn) {
+              fullscreenBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                await toggleFullscreenWithOrientation();
+              });
+            }
+          }, 500);
+
+          const fullscreenEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+          
+          fullscreenEvents.forEach(eventName => {
+            document.addEventListener(eventName, async () => {
+              const isFullscreen = document.fullscreenElement || 
+                                  document.webkitFullscreenElement || 
+                                  document.mozFullScreenElement || 
+                                  document.msFullscreenElement;
+
+              if (!isFullscreen) {
+                unlockOrientation();
+                document.body.classList.remove('in-fullscreen');
+              } else {
+                document.body.classList.add('in-fullscreen');
+                setTimeout(async () => {
+                  await lockOrientation('landscape');
+                }, 100);
+              }
+            });
+          });
+        }
+        // ========== HLS PLAYBACK ==========
+        else if (isHls && Hls.isSupported()) {
+          console.log('Initializing HLS player...');
+          
+hls = new Hls({
+  debug: false,
+  enableWorker: true,
+  
+  // STABLE BUFFER SETTINGS
+  maxBufferLength: 30,
+  maxMaxBufferLength: 60,
+  maxBufferSize: 60 * 1000 * 1000,
+  maxBufferHole: 0.5,
+  
+  startLevel: -1,
+  capLevelToPlayerSize: false,
+  
+  // BALANCED ABR
+  autoLevelEnabled: true,
+  autoLevelCapping: -1,
+  abrEwmaDefaultEstimate: 5000000,
+  abrEwmaFastLive: 3.0,
+  abrEwmaSlowLive: 9.0,
+  abrBandWidthFactor: 0.7,
+  abrBandWidthUpFactor: 0.7,
+  
+  // RETRY SETTINGS
+  manifestLoadingTimeOut: 20000,
+  levelLoadingTimeOut: 20000,
+  fragLoadingTimeOut: 30000,
+  manifestLoadingMaxRetry: 5,
+  levelLoadingMaxRetry: 5,
+  fragLoadingMaxRetry: 10,
+  fragLoadingRetryDelay: 1000,
+  
+  // LIVE STREAM - MORE BUFFERING
+  liveSyncDurationCount: 3,
+  liveMaxLatencyDurationCount: 10,
+  liveDurationInfinity: true,
+  
+  enableSoftwareAES: true,
+  forceKeyFrameOnDiscontinuity: true,
+  highBufferWatchdogPeriod: 2,
+  nudgeOffset: 0.1,
+  nudgeMaxRetry: 5,
+  maxFragLookUpTolerance: 0.5,
+  
+  minAutoBitrate: 500000
+});
+
+let errorRetryCount = 0;
+const MAX_RETRIES = 2;
+
+hls.on(Hls.Events.ERROR, function(event, data) {
+  console.error('HLS Error:', data.type, data.details, data);
+  
+  if (data.fatal) {
+    switch(data.type) {
+      case Hls.ErrorTypes.NETWORK_ERROR:
+        errorRetryCount++;
+        if (errorRetryCount <= MAX_RETRIES) {
+          console.log(`Network error, retry ${errorRetryCount}/${MAX_RETRIES}...`);
+          hls.startLoad();
+        } else {
+          console.log('Max retries reached, trying next stream link...');
+          hls.destroy();
+          currentLinkIndex++;
+          tryNextStream();
+        }
+        break;
+        
+      case Hls.ErrorTypes.MEDIA_ERROR:
+        errorRetryCount++;
+        if (errorRetryCount <= MAX_RETRIES) {
+          console.log(`Media error, retry ${errorRetryCount}/${MAX_RETRIES}...`);
+          hls.recoverMediaError();
+        } else {
+          console.log('Max retries reached, trying next stream link...');
+          hls.destroy();
+          currentLinkIndex++;
+          tryNextStream();
+        }
+        break;
+        
+      default:
+        console.error('Unrecoverable error, trying next stream link...');
+        hls.destroy();
+        currentLinkIndex++;
+        tryNextStream();
+        break;
+    }
+  }
+});
+
+          hls.loadSource(streamUrl);
+          hls.attachMedia(video);
+
+window.hls = hls;
+
+// Handle phone calls and app switching
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    console.log('App hidden, pausing...');
+    //video.pause();
+  } else {
+    console.log('App visible, resuming...');
+    setTimeout(() => {
+      if (hls) {
+        hls.startLoad();
+        video.play().catch(e => console.log('Resume failed:', e));
+      }
+    }, 300);
+  }
+});
+
+// Handle page focus
+window.addEventListener('blur', () => {
+  console.log('Window blur');
+  //video.pause();
+});
+
+window.addEventListener('focus', () => {
+  console.log('Window focus');
+  setTimeout(() => {
+    if (hls && video.paused) {
+      hls.startLoad();
+      video.play().catch(e => console.log('Resume failed:', e));
+    }
+  }, 300);
+});
+		  
+// Simple quality logging
+hls.on(Hls.Events.LEVEL_SWITCHED, function(event, data) {
+  const currentLevel = hls.levels[data.level];
+  console.log(`Quality: ${currentLevel.height}p @ ${(currentLevel.bitrate / 1000).toFixed(0)}kbps`);
+});		  
+
+let manifestLoaded = false;
+const loadTimeout = setTimeout(() => {
+  if (!manifestLoaded) {
+    console.log('Stream load timeout, trying next link...');
+    if (hls) {
+      hls.destroy();
+    }
+    currentLinkIndex++;
+    tryNextStream();
+  }
+}, 3000);
+
+hls.on(Hls.Events.MANIFEST_PARSED, function () {
+  manifestLoaded = true;
+  clearTimeout(loadTimeout);
+
+  // 1️⃣ Extract qualities from HLS
+  const qualities = hls.levels
+    .map(l => l.height)
+    .filter(Boolean);
+
+  // Add AUTO
+  qualities.unshift(0);
+
+  console.log('Available qualities:', qualities);
+
+  // 2️⃣ Create Plyr WITH quality support
+  player = new Plyr(video, {
+    controls: [
+      'play-large',
+      'play',
+      'progress',
+      'current-time',
+      'mute',
+      'volume',
+      'settings',
+      'pip',
+      'airplay',
+      'fullscreen'
+    ],
+    quality: {
+      default: 0,          // AUTO
+      options: qualities,  // [0, 240, 360, 720, ...]
+      forced: true,
+      onChange: quality => {
+        if (quality === 0) {
+          hls.currentLevel = -1; // AUTO
+        } else {
+          hls.currentLevel = hls.levels.findIndex(
+            l => l.height === quality
+          );
+        }
+      }
+    },
+    storage: { enabled: false },
+    autoplay: false,
+    resetOnEnd: false,
+    hideControls: true,
+    clickToPlay: false,
+    keyboard: { focused: true, global: true }
+  });
+            
+            const tryPlay = async () => {
+              try {
+                await video.play();
+                console.log('Playback started');
+              } catch (e) {
+                console.log('Autoplay prevented, waiting for user interaction');
+                video.addEventListener('click', () => video.play(), { once: true });
+              }
+            };
+
+            hls.on(Hls.Events.FRAG_BUFFERED, function initialBuffer() {
+              const buffered = video.buffered;
+              if (buffered.length > 0 && buffered.end(0) - video.currentTime > 2) {
+                hls.off(Hls.Events.FRAG_BUFFERED, initialBuffer);
+                tryPlay();
+              }
+            });
+
+            setupDoubleTapFullscreen();
+
+            setTimeout(() => {
+              const fullscreenBtn = document.querySelector('.plyr__controls button[data-plyr="fullscreen"]');
+              if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', async (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  await toggleFullscreenWithOrientation();
+                });
+              }
+            }, 500);
+
+            const fullscreenEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+            
+            fullscreenEvents.forEach(eventName => {
+              document.addEventListener(eventName, async () => {
+                const isFullscreen = document.fullscreenElement || 
+                                    document.webkitFullscreenElement || 
+                                    document.mozFullScreenElement || 
+                                    document.msFullscreenElement;
+
+                if (!isFullscreen) {
+                  unlockOrientation();
+                  document.body.classList.remove('in-fullscreen');
+                } else {
+                  document.body.classList.add('in-fullscreen');
+                  setTimeout(async () => {
+                    await lockOrientation('landscape');
+                  }, 100);
+                }
+              });
+            });
+          });
+
+          hls.on(Hls.Events.FRAG_BUFFERED, function(event, data) {
+            const buffered = video.buffered;
+            if (buffered.length > 0) {
+              const bufferEnd = buffered.end(buffered.length - 1);
+              const bufferLength = bufferEnd - video.currentTime;
+              console.log(`Buffer: ${bufferLength.toFixed(2)}s`);
+            }
+          });
+
+          hls.on(Hls.Events.LEVEL_SWITCHING, function(event, data) {
+            const level = hls.levels[data.level];
+            console.log(`Switching to quality: ${level.height}p @ ${(level.bitrate / 1000).toFixed(0)}kbps`);
+          });
+        }
+        // ========== SAFARI NATIVE HLS ==========
+        else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+          console.log('Using Safari native HLS playback...');
+          
+          video.src = streamUrl;
+          
+player = new Plyr(video, {
+  controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'settings', 'pip', 'airplay', 'fullscreen'],
+  storage: { enabled: false },
+  autoplay: false,
+  resetOnEnd: false,
+  hideControls: true,
+  clickToPlay: false,  // Changed from true
+  keyboard: { focused: true, global: true }
+});
+          
+          video.addEventListener('loadeddata', () => {
+            const tryPlay = async () => {
+              try {
+                await video.play();
+                console.log('Safari native playback started');
+              } catch (e) {
+                console.log('Autoplay prevented, waiting for user interaction');
+                video.addEventListener('click', () => video.play(), { once: true });
+              }
+            };
+            
+            setTimeout(tryPlay, 500);
+          }, { once: true });
+
+          setupDoubleTapFullscreen();
+
+          setTimeout(() => {
+            const fullscreenBtn = document.querySelector('.plyr__controls button[data-plyr="fullscreen"]');
+            if (fullscreenBtn) {
+              fullscreenBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                await toggleFullscreenWithOrientation();
+              });
+            }
+          }, 500);
+
+          const fullscreenEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+          
+          fullscreenEvents.forEach(eventName => {
+            document.addEventListener(eventName, async () => {
+              const isFullscreen = document.fullscreenElement || 
+                                  document.webkitFullscreenElement || 
+                                  document.mozFullScreenElement || 
+                                  document.msFullscreenElement;
+
+              if (!isFullscreen) {
+                unlockOrientation();
+                document.body.classList.remove('in-fullscreen');
+              } else {
+                document.body.classList.add('in-fullscreen');
+                setTimeout(async () => {
+                  await lockOrientation('landscape');
+                }, 100);
+              }
+            });
+          });
+        } else {
+          showError('Playback not supported on this device for this stream format.');
+        }
+	  }  // End of tryNextStream function
+		
+		// Start trying streams
+		await tryNextStream();
+
+        setupEPGScrollButtons();
+        setupDateNavigation();
+        
+      } catch (err) {
+        console.error("Error loading stream:", err);
+        showError('Failed to load stream. Please try again later.');
+      } finally {
+        if (channel && channel.epg) {
+          currentEPGOffset = 0;
+          currentChannelEPG = channel.epg;
+          loadEPG(channel.epg, 0);
+        } else if (channel) {
+          const epgTimeline = document.getElementById('epgTimeline');
+          if (epgTimeline) {
+            epgTimeline.innerHTML = '<div class="epg-loading">EPG data not available for this channel</div>';
+          }
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initPlayer);
+</script>
+</body>
+</html>

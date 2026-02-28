@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Player | Pangu Catchup</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  
+  <!-- Video.js CSS -->
+  <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+      color: #e5e7eb;
+      min-height: 100vh;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.9);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .gradient-text {
+      background: linear-gradient(90deg, #a855f7, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .pulse-dot {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @media (max-width: 640px) {
+      .logo-img {
+        width: 40px !important;
+        height: 40px !important;
+      }
+    }
+    
+    /* Video.js player styling */
+    .video-js {
+      width: 100%;
+      height: 100%;
+    }
+    
+/* Base video styling */
+.video-js .vjs-tech {
+  object-fit: contain;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fullscreen - always fill screen */
+.video-js.vjs-fullscreen .vjs-tech {
+  object-fit: fill !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* iOS Safari specific fixes */
+.video-js.vjs-fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+/* Disable iOS inline playback controls in fullscreen */
+.video-js.vjs-fullscreen video::-webkit-media-controls {
+  display: none !important;
+}
+    
+    /* Hide volume on mobile */
+    @media (max-width: 640px) {
+      .vjs-volume-panel {
+        display: none !important;
+      }
+    }
+    
+    /* Ensure video container is proper size */
+    .video-js {
+      position: relative;
+      aspect-ratio: 16/9;
+    }
+    
+    @media (max-width: 640px) {
+      .video-js {
+        aspect-ratio: 16/9;
+      }
+    }
+
+    /* Make time display more visible */
+    .vjs-current-time,
+    .vjs-time-divider,
+    .vjs-duration {
+      display: block !important;
+      font-size: 1em !important;
+    }
+    
+    .vjs-current-time-display,
+    .vjs-duration-display {
+      font-size: 1em !important;
+    }
+
+    /* Force spacer to work properly - push volume/fullscreen to right */
+    .vjs-flexible-width-spacer {
+      flex: 1 1 auto !important;
+      display: flex !important;
+      min-width: 20px !important;
+    }
+
+    /* Ensure control bar uses flexbox layout */
+    .vjs-control-bar {
+      display: flex !important;
+      justify-content: space-between !important;
+    }
+
+    /* Force volume and fullscreen to stay on the right */
+    .vjs-volume-panel,
+    .vjs-playback-rate,
+    .vjs-fullscreen-control {
+      margin-left: auto !important;
+    }
+
+    /* Make sure play button stays on left */
+    .vjs-play-control {
+      order: -1 !important;
+    }
+
+    /* Override any Video.js attempts to change flex */
+    .vjs-control-bar > * {
+      flex-shrink: 0 !important;
+    }
+
+    /* Hide playback rate button for live streams - add via JS class */
+    .live-stream .vjs-playback-rate {
+      display: none !important;
+    }
+
+    .live-stream .vjs-volume-panel {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="border-b border-slate-800/70 bg-slate-950/80 backdrop-blur sticky top-0 z-20">
+    <div class="max-w-5xl mx-auto px-3 py-2.5 flex items-center justify-between">
+      <button
+        onclick="history.back()"
+        class="text-xs text-slate-300 hover:text-white flex items-center gap-1.5"
+      >
+        <span class="inline-block w-5 h-5 rounded-full border border-slate-500 flex items-center justify-center text-[10px]">
+          ←
+        </span>
+        <span class="hidden sm:inline">Back</span>
+      </button>
+      <div class="text-xs text-slate-400 flex items-center gap-2">
+        <span id="mode-label">Loading…</span>
+        <span id="retry-status" class="flex items-center gap-1.5">
+          <span class="pulse-dot inline-block w-2 h-2 rounded-full bg-green-500"></span>
+          <span id="retry-timer" class="text-[10px]">-</span>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <main class="max-w-5xl mx-auto px-3 py-4 space-y-4">
+    <!-- Player Card -->
+    <section class="glass rounded-xl p-3 md:p-5 shadow-xl space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-2.5 md:gap-3 flex-1 min-w-0">
+          <img
+            id="channel-logo"
+            src=""
+            alt="Logo"
+            class="logo-img w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover hidden flex-shrink-0"
+          />
+          <div class="min-w-0 flex-1">
+            <h1 id="channel-name" class="text-base md:text-lg font-semibold gradient-text truncate">
+              Loading…
+            </h1>
+            <p id="stream-meta" class="text-[10px] md:text-xs text-slate-400 mt-0.5 truncate">
+              Fetching stream info…
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg overflow-hidden border border-slate-800">
+        <video
+          id="player"
+          class="video-js vjs-default-skin vjs-big-play-centered"
+          controls
+          preload="auto"
+          playsinline
+        ></video>
+      </div>
+
+      <p id="error-box" class="hidden text-xs text-red-400"></p>
+    </section>
+  </main>
+
+  <!-- Video.js -->
+  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+  <!-- Hls.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js"></script>
+
+  <script>
+    (function () {
+      // ===== GET URL PARAMETERS =====
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get("mode") || "play";
+      const hex  = params.get("hex");
+
+      // ===== DOM ELEMENTS =====
+      const modeLabel = document.getElementById("mode-label");
+      const errorBox = document.getElementById("error-box");
+      const nameEl = document.getElementById("channel-name");
+      const metaEl = document.getElementById("stream-meta");
+      const logoEl = document.getElementById("channel-logo");
+      const retryTimer = document.getElementById("retry-timer");
+
+      // ===== CONFIGURATION =====
+      const apiBase = "https://catchup.porus-in2012.workers.dev";
+      const TWO_MINUTES = 120000;
+      const CHECK_INTERVAL = 5000;
+      const SAVE_INTERVAL = 3000; // Save position every 3 seconds for catchup
+
+      // ===== STATE =====
+      let player = null;
+      let hlsInstance = null;
+      let refreshCount = 0;
+      let checkerStarted = false;
+      let currentStreamUrl = null;
+      let lastSavedTime = 0;
+      let isCatchup = false;
+      let positionSaveInterval = null;
+	  let userInitiatedFullscreen = false;
+	  
+	  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+		|| (window.matchMedia && window.matchMedia("(max-width: 768px)").matches);
+
+      // ===== VALIDATE HEX PARAMETER =====
+      if (!hex) {
+        modeLabel.textContent = "Error";
+        nameEl.textContent = "Missing hex parameter";
+        metaEl.textContent = "Invalid URL";
+        errorBox.classList.remove("hidden");
+        errorBox.textContent = "No hex parameter provided";
+        return;
+      }
+
+      // ===== SET MODE LABEL =====
+      isCatchup = mode === "cplay";
+      modeLabel.textContent = isCatchup ? "Catchup" : "Live";
+
+      // ===== INITIALIZE VIDEO.JS =====
+player = videojs('player', {
+  controls: true,
+  autoplay: true,
+  preload: 'auto',
+  fluid: true,
+  aspectRatio: '16:9',
+  playbackRates: [0.5, 0.75, 1, 1.25, 1.5, 2],
+  liveui: true,
+  fullscreen: {
+    options: { navigationUI: 'hide' }
+  },
+  controlBar: {
+          children: [
+            'playToggle',
+            'progressControl',
+            'currentTimeDisplay',
+            'timeDivider',
+            'durationDisplay',
+            'flexibleWidthSpacer',
+            'volumePanel',
+            'playbackRateMenuButton',
+            'fullscreenToggle'
+          ]
+        },
+        html5: {
+          vhs: {
+            overrideNative: true
+          },
+          nativeAudioTracks: false,
+          nativeVideoTracks: false
+        }
+      });
+
+      // For live streams, hide progress bar, time displays, volume and playback speed
+      if (!isCatchup) {
+        // Add class to player for CSS targeting
+        player.addClass('live-stream');
+        
+        player.ready(() => {
+          const progressControl = player.controlBar.progressControl;
+          const currentTime = player.controlBar.currentTimeDisplay;
+          const timeDivider = player.controlBar.getChild('timeDivider');
+          const duration = player.controlBar.durationDisplay;
+          const volumePanel = player.controlBar.volumePanel;
+          const playbackRate = player.controlBar.getChild('playbackRateMenuButton');
+          
+          if (progressControl) progressControl.hide();
+          if (currentTime) currentTime.hide();
+          if (timeDivider) timeDivider.hide();
+          if (duration) duration.hide();
+          if (volumePanel) volumePanel.hide();
+          if (playbackRate) playbackRate.hide();
+        });
+      }
+
+      // ===== SAVE CATCHUP POSITION =====
+      function saveCatchupPosition() {
+        if (!isCatchup || !player) return;
+        
+        const currentTime = player.currentTime();
+        if (currentTime && currentTime > 0) {
+          sessionStorage.setItem(`catchup_position_${hex}`, currentTime.toString());
+          lastSavedTime = currentTime;
+        }
+      }
+
+      // ===== GET SAVED CATCHUP POSITION =====
+      function getSavedPosition() {
+        if (!isCatchup) return 0;
+        
+        const saved = sessionStorage.getItem(`catchup_position_${hex}`);
+        return saved ? parseFloat(saved) : 0;
+      }
+
+      // ===== START POSITION SAVING FOR CATCHUP =====
+      function startPositionSaving() {
+        if (!isCatchup) return;
+        
+        // Clear any existing interval
+        if (positionSaveInterval) {
+          clearInterval(positionSaveInterval);
+        }
+        
+        // Save position every 3 seconds
+        positionSaveInterval = setInterval(saveCatchupPosition, SAVE_INTERVAL);
+        
+        // Also save on timeupdate
+        player.on('timeupdate', saveCatchupPosition);
+      }
+	  
+// ===== ROBUST ORIENTATION & FULLSCREEN HANDLING (MOBILE ONLY) =====
+if (isMobile) {
+  let isHandlingOrientation = false;
+  let orientationTimeout = null;
+
+  // Function to safely enter fullscreen
+  async function enterFullscreenLandscape() {
+    if (isHandlingOrientation || player.isFullscreen() || userInitiatedFullscreen) return;
+    isHandlingOrientation = true;
+    
+    try {
+      await player.requestFullscreen();
+      
+      if (screen.orientation && screen.orientation.lock) {
+        try {
+          await screen.orientation.lock('landscape');
+          console.log('✅ Locked to landscape');
+        } catch (err) {
+          console.log('⚠️ Orientation lock not available:', err.message);
+        }
+      }
+    } catch (err) {
+      console.log('❌ Fullscreen error:', err.message);
+    }
+    
+    setTimeout(() => { 
+      isHandlingOrientation = false;
+      userInitiatedFullscreen = false; // Reset after delay
+    }, 1000);
+  }
+
+  // Function to safely exit fullscreen
+  async function exitFullscreenPortrait() {
+    if (isHandlingOrientation || !player.isFullscreen() || userInitiatedFullscreen) return;
+    isHandlingOrientation = true;
+    
+    try {
+      if (screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+          console.log('✅ Unlocked orientation');
+        } catch (err) {
+          console.log('⚠️ Orientation unlock not available');
+        }
+      }
+      
+      await player.exitFullscreen();
+    } catch (err) {
+      console.log('❌ Exit fullscreen error:', err.message);
+    }
+    
+    setTimeout(() => { 
+      isHandlingOrientation = false;
+      userInitiatedFullscreen = false; // Reset after delay
+    }, 1000);
+  }
+
+  // Detect manual fullscreen button clicks
+  player.on('fullscreenchange', () => {
+    // Mark as user-initiated to prevent orientation handlers from interfering
+    userInitiatedFullscreen = true;
+    
+    if (player.isFullscreen()) {
+      console.log('📺 Entered fullscreen (user click)');
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('landscape').catch(err => {
+          console.log('Lock failed:', err.message);
+        });
+      }
+    } else {
+      console.log('📱 Exited fullscreen (user click)');
+      if (screen.orientation && screen.orientation.unlock) {
+        try {
+          screen.orientation.unlock();
+        } catch (err) {
+          console.log('Unlock failed:', err.message);
+        }
+      }
+    }
+    
+    // Reset flag after 1 second
+    setTimeout(() => {
+      userInitiatedFullscreen = false;
+    }, 1000);
+  });
+
+  // METHOD: Watch for device orientation changes
+  if (window.matchMedia) {
+    const landscapeQuery = window.matchMedia('(orientation: landscape)');
+    
+    const handleOrientationChange = (e) => {
+      if (userInitiatedFullscreen) {
+        console.log('⏭️ Skipping orientation handler (user-initiated)');
+        return;
+      }
+      
+      if (orientationTimeout) {
+        clearTimeout(orientationTimeout);
+      }
+      
+      orientationTimeout = setTimeout(() => {
+        const isLandscape = e.matches;
+        const isFullscreen = player.isFullscreen();
+        
+        console.log(`🔄 Orientation: ${isLandscape ? 'LANDSCAPE' : 'PORTRAIT'}, Fullscreen: ${isFullscreen}`);
+        
+        if (isLandscape && !isFullscreen) {
+          console.log('→ Entering fullscreen (landscape detected)');
+          enterFullscreenLandscape();
+        } else if (!isLandscape && isFullscreen) {
+          console.log('→ Exiting fullscreen (portrait detected)');
+          exitFullscreenPortrait();
+        }
+      }, 300);
+    };
+    
+    if (landscapeQuery.addEventListener) {
+      landscapeQuery.addEventListener('change', handleOrientationChange);
+    } else if (landscapeQuery.addListener) {
+      landscapeQuery.addListener(handleOrientationChange);
+    }
+  }
+}  
+
+      // ===== DOUBLE TAP TO SEEK (MOBILE) =====
+      let lastTap = 0;
+      const videoElement = player.el();
+      
+      videoElement.addEventListener('touchend', (e) => {
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTap;
+        
+        if (tapLength < 300 && tapLength > 0) {
+          // Double tap detected
+          const rect = videoElement.getBoundingClientRect();
+          const x = e.changedTouches[0].clientX - rect.left;
+          const width = rect.width;
+          
+          if (x < width / 2) {
+            // Left side - seek backward 10s
+            player.currentTime(Math.max(0, player.currentTime() - 10));
+          } else {
+            // Right side - seek forward 10s
+            player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
+          }
+          e.preventDefault();
+        }
+        lastTap = currentTime;
+      });
+
+      // ===== KEYBOARD CONTROLS (PC) =====
+      document.addEventListener('keydown', (e) => {
+        // Seek backward 10s
+        if (e.key === 'ArrowLeft') {
+          player.currentTime(Math.max(0, player.currentTime() - 10));
+          e.preventDefault();
+        } 
+        // Seek forward 10s
+        else if (e.key === 'ArrowRight') {
+          player.currentTime(Math.min(player.duration(), player.currentTime() + 10));
+          e.preventDefault();
+        } 
+        // Volume up
+        else if (e.key === 'ArrowUp') {
+          const currentVolume = player.volume();
+          player.volume(Math.min(1, currentVolume + 0.1));
+          e.preventDefault();
+        } 
+        // Volume down
+        else if (e.key === 'ArrowDown') {
+          const currentVolume = player.volume();
+          player.volume(Math.max(0, currentVolume - 0.1));
+          e.preventDefault();
+        } 
+        // Play/Pause (Spacebar)
+        else if (e.key === ' ') {
+          if (player.paused()) {
+            player.play();
+          } else {
+            player.pause();
+          }
+          e.preventDefault();
+        } 
+        // Fullscreen (F or Enter)
+        else if (e.key === 'f' || e.key === 'F' || e.key === 'Enter') {
+          if (player.isFullscreen()) {
+            player.exitFullscreen();
+          } else {
+            player.requestFullscreen();
+          }
+          e.preventDefault();
+        } 
+        // Mute/Unmute (M)
+        else if (e.key === 'm' || e.key === 'M') {
+          player.muted(!player.muted());
+          e.preventDefault();
+        }
+      });
+
+      // ===== FUNCTION: UPDATE DISPLAY TIMERS =====
+      function updateDisplay() {
+        const startTime = sessionStorage.getItem('streamStartTime');
+        
+        if (startTime) {
+          const elapsed = Date.now() - parseInt(startTime);
+          const timeLeft = Math.max(0, Math.ceil((TWO_MINUTES - elapsed) / 1000));
+          retryTimer.textContent = `${timeLeft}s`;
+        } else {
+          retryTimer.textContent = "...";
+        }
+      }
+
+      setInterval(updateDisplay, 1000);
+
+      // ===== FUNCTION: START/RESTART STREAM =====
+      function startStream(streamUrl, type, resumeFromSaved = false) {
+        console.log("Starting stream:", streamUrl);
+        
+        // Save stream start time for 2-minute refresh
+        const now = Date.now();
+        sessionStorage.setItem('streamStartTime', now.toString());
+
+        currentStreamUrl = streamUrl;
+
+        // Get saved position before destroying player
+        const savedPosition = resumeFromSaved ? getSavedPosition() : 0;
+        console.log(isCatchup ? `Catchup mode - will resume from: ${savedPosition}s` : "Live mode - starting from beginning");
+
+        // Destroy old HLS instance
+        if (hlsInstance) {
+          try { 
+            hlsInstance.destroy(); 
+          } catch (e) { 
+            console.warn("HLS destroy error:", e.message); 
+          }
+          hlsInstance = null;
+        }
+
+        const isHls = streamUrl && (
+          streamUrl.endsWith(".m3u8") ||
+          (type && type.toLowerCase() === "hls")
+        );
+
+        if (isHls && window.Hls && Hls.isSupported()) {
+          console.log("Using HLS.js with Video.js");
+          
+          hlsInstance = new Hls({
+            debug: false,
+            enableWorker: true,
+            lowLatencyMode: !isCatchup, // Only for live streams
+            maxBufferLength: 30,
+            maxMaxBufferLength: 600,
+            maxBufferSize: 60 * 1000 * 1000,
+            maxBufferHole: 0.5,
+            highBufferWatchdogPeriod: 2,
+            nudgeOffset: 0.1,
+            nudgeMaxRetry: 3,
+            maxFragLookUpTolerance: 0.25,
+            liveSyncDurationCount: 3,
+            liveMaxLatencyDurationCount: 10,
+            liveDurationInfinity: !isCatchup, // Only for live streams
+            enableWebVTT: false,
+            enableCEA708Captions: false,
+            startLevel: -1,
+            autoStartLoad: true,
+            startPosition: isCatchup && savedPosition > 0 ? savedPosition : -1
+          });
+
+          hlsInstance.loadSource(streamUrl);
+          hlsInstance.attachMedia(player.tech().el());
+
+          hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+            console.log("Manifest parsed");
+            
+            // For catchup, seek to saved position quickly
+            if (isCatchup && savedPosition > 0) {
+              player.one('loadedmetadata', () => {
+                console.log(`Seeking to saved position: ${savedPosition}s`);
+                player.currentTime(savedPosition);
+                player.play().catch(err => {
+                  console.warn("Autoplay prevented:", err);
+                });
+              });
+            } else {
+              player.play().catch(err => {
+                console.warn("Autoplay prevented:", err);
+              });
+            }
+            
+            // Start saving position for catchup
+            if (isCatchup) {
+              startPositionSaving();
+            }
+          });
+
+          hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+            console.error("HLS Error:", data.type, data.details);
+            
+            if (data.fatal) {
+              switch (data.type) {
+                case Hls.ErrorTypes.NETWORK_ERROR:
+                  console.log("Network error, attempting recovery...");
+                  hlsInstance.startLoad();
+                  break;
+                case Hls.ErrorTypes.MEDIA_ERROR:
+                  console.log("Media error, attempting recovery...");
+                  hlsInstance.recoverMediaError();
+                  break;
+                default:
+                  console.error("Fatal error, cannot recover");
+                  break;
+              }
+            }
+          });
+
+        } else if (player.canPlayType('application/vnd.apple.mpegurl')) {
+          console.log("Using native HLS (Safari)");
+          player.src({ src: streamUrl, type: 'application/x-mpegURL' });
+          
+          if (isCatchup && savedPosition > 0) {
+            player.one('loadedmetadata', () => {
+              console.log(`Seeking to saved position: ${savedPosition}s`);
+              player.currentTime(savedPosition);
+              player.play().catch(err => {
+                console.warn("Autoplay prevented:", err);
+              });
+            });
+          } else {
+            player.play().catch(err => {
+              console.warn("Autoplay prevented:", err);
+            });
+          }
+          
+          if (isCatchup) {
+            startPositionSaving();
+          }
+        } else {
+          console.log("Using MP4 fallback");
+          player.src({ src: streamUrl, type: 'video/mp4' });
+          
+          if (isCatchup && savedPosition > 0) {
+            player.one('loadedmetadata', () => {
+              console.log(`Seeking to saved position: ${savedPosition}s`);
+              player.currentTime(savedPosition);
+              player.play().catch(err => {
+                console.warn("Autoplay prevented:", err);
+              });
+            });
+          } else {
+            player.play().catch(err => {
+              console.warn("Autoplay prevented:", err);
+            });
+          }
+          
+          if (isCatchup) {
+            startPositionSaving();
+          }
+        }
+      }
+
+      // ===== FUNCTION: CHECK IF RESTART NEEDED (EVERY 2 MINUTES) =====
+      function checkAndRestart() {
+        const startTime = sessionStorage.getItem('streamStartTime');
+        
+        if (!startTime) return;
+
+        const elapsed = Date.now() - parseInt(startTime);
+
+        // Force restart every 2 minutes
+        if (elapsed >= TWO_MINUTES) {
+          refreshCount++;
+          console.log(`Force restart #${refreshCount} - 2 minutes elapsed`);
+          
+          // Save position one last time before restart (for catchup)
+          if (isCatchup) {
+            saveCatchupPosition();
+          }
+          
+          // Stop current stream
+          player.pause();
+          
+          // Restart with same stream URL
+          // For catchup: resume from saved position
+          // For live: start from beginning
+          if (currentStreamUrl) {
+            console.log("Restarting stream with URL:", currentStreamUrl);
+            startStream(currentStreamUrl, 'hls', isCatchup);
+          }
+        }
+      }
+
+      // ===== FUNCTION: START RESTART CHECKER =====
+      function startRestartChecker() {
+        if (checkerStarted) return;
+        checkerStarted = true;
+        console.log("Starting 2-minute restart checker for all streams");
+        setInterval(checkAndRestart, CHECK_INTERVAL);
+      }
+	  
+async function decryptWorkerResponse(encryptedB64) {
+  const ENCRYPTION_KEY = "PUSHPA1210SUBBU1501PURUSHOTH1005"; // SAME KEY as worker
+  
+  try {
+    // Decode base64
+    const combined = Uint8Array.from(atob(encryptedB64), c => c.charCodeAt(0));
+    
+    // Extract IV and encrypted data
+    const iv = combined.slice(0, 12);
+    const encrypted = combined.slice(12);
+    
+    // Import key
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(ENCRYPTION_KEY),
+      { name: "AES-GCM" },
+      false,
+      ["decrypt"]
+    );
+    
+    // Decrypt
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      key,
+      encrypted
+    );
+    
+    const plaintext = new TextDecoder().decode(decrypted);
+    return JSON.parse(plaintext);
+  } catch (err) {
+    throw new Error("Decryption failed: " + err.message);
+  }
+}	  
+
+      // ===== FUNCTION: FETCH STREAM INFO AND START PLAYING =====
+      async function loadAndPlayStream() {
+        const endpoint = isCatchup ? "/cplay/" : "/play/";
+        const apiUrl = apiBase + endpoint + hex;
+
+        try {
+          const res = await fetch(apiUrl);
+		  if (!res.ok) {
+			throw new Error("Worker returned HTTP " + res.status);
+		  }
+
+		  const encryptedResponse = await res.json();
+		  const data = await decryptWorkerResponse(encryptedResponse.encrypted);
+
+          const name  = data.name || "Unknown Channel";
+          const logo  = data.logo || "";
+          const type  = data.type || "hls";
+          let stream  = data.stream;
+
+          nameEl.textContent = name;
+          metaEl.textContent = isCatchup ? "Catchup stream" : "Live stream";
+
+          if (logo) {
+            logoEl.src = logo;
+            logoEl.classList.remove("hidden");
+          }
+
+          if (!stream) {
+            throw new Error("No stream field in response");
+          }
+
+          let streamUrl = stream;
+          if (!streamUrl.startsWith("http")) {
+            if (isCatchup) {
+              streamUrl = "https://servertvhub.site/jio/app/catchup/" + streamUrl;
+            } else {
+              streamUrl = "https://servertvhub.site/jio/app/" + streamUrl;
+            }
+          }
+
+          // Check if we have a saved position for catchup
+          const hasSavedPosition = isCatchup && getSavedPosition() > 0;
+          startStream(streamUrl, type, hasSavedPosition);
+          startRestartChecker();
+
+        } catch (err) {
+          console.error("Error:", err);
+          errorBox.classList.remove("hidden");
+          errorBox.textContent = "Failed to load stream: " + err.message;
+          nameEl.textContent = "Error loading stream";
+          metaEl.textContent = "Please try again";
+        }
+      }
+
+      // ===== CLEANUP ON PAGE UNLOAD =====
+      window.addEventListener('beforeunload', () => {
+        // Save final position for catchup
+        if (isCatchup) {
+          saveCatchupPosition();
+        }
+        
+        // Clear interval
+        if (positionSaveInterval) {
+          clearInterval(positionSaveInterval);
+        }
+        
+        // Cleanup player
+        if (hlsInstance) {
+          hlsInstance.destroy();
+        }
+        if (player) {
+          player.dispose();
+        }
+      });
+
+      // ===== INITIALIZE =====
+      loadAndPlayStream();
+    })();
+  </script>
+</body>
+</html>

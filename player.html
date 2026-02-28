@@ -1,0 +1,2119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+  <title>Live TV Player</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.7.9/shaka-player.compiled.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+body {
+  background: #0b0c10;
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Disable text selection and user interactions */
+body {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Disable context menu on images and video */
+img, video {
+  pointer-events: auto;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+/* Allow text selection only in specific areas if needed */
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+    header {
+      display: flex;
+      align-items: center;
+      padding: 12px 20px;
+      background: rgba(31, 40, 51, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
+      z-index: 2000;
+      flex-shrink: 0;
+	  min-height: 60px; 
+	  height: auto;	  
+    }
+
+    header.hidden {
+      transform: translateY(-100%);
+      transition: transform 0.3s;
+    }
+
+    header img {
+      height: 45px;
+      width: 45px;
+      object-fit: contain;
+      border-radius: 8px;
+      margin-right: 15px;
+      background: rgba(0,0,0,0.3);
+      padding: 4px;
+    }
+
+    header h1 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      flex: 1;
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    header button {
+      background: linear-gradient(135deg, #45a29e 0%, #66fcf1 100%);
+      border: none;
+      color: #0b0c10;
+      padding: 10px 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 0.9rem;
+    }
+
+    header button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
+    }
+	
+.header-settings-btn {
+      background: rgba(69, 162, 158, 0.9);
+      border: 1px solid #66fcf1;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.3s;
+      font-size: 1.1rem;
+      margin-right: 10px;
+    }
+
+    .header-settings-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
+    }	
+	
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  background: rgba(31, 40, 51, 0.95);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.4);
+  z-index: 2000;
+  flex-shrink: 0;
+  min-height: 50px; 
+  height: auto;
+  transition: none; /* Disable any transitions */
+}
+
+/* Show footer by default when NOT in fullscreen */
+body:not(.in-fullscreen) footer {
+  display: flex !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Hide footer in fullscreen by default */
+body.in-fullscreen footer {
+  display: none;
+  opacity: 0;
+  visibility: hidden;
+}
+
+/* Show footer in fullscreen when visible class is added */
+body.in-fullscreen footer.visible {
+  display: flex !important;
+  opacity: 1;
+  visibility: visible;
+}
+
+.player-wrapper {
+  flex: 0 0 auto;
+  height: 40vh; 
+  max-height: 40vh;
+  position: relative;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+  min-height: 0;
+}
+
+    video {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      outline: none;
+      object-fit: contain;
+	  padding: 0;
+	  margin: 0;
+    }
+
+    video.fit { object-fit: contain; }
+    video.fill { object-fit: cover; }
+    video.crop { object-fit: fill; }
+
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .spinner {
+      border: 4px solid rgba(102, 252, 241, 0.2);
+      border-top: 4px solid #66fcf1;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 1.1rem;
+      color: #66fcf1;
+    }
+
+    .controls-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .control-btn {
+      background: rgba(69, 162, 158, 0.9);
+      border: 1px solid #66fcf1;
+      color: #fff;
+      padding: 10px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+      backdrop-filter: blur(10px);
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .control-btn:active {
+      background: rgba(102, 252, 241, 0.9);
+      color: #0b0c10;
+      transform: scale(0.95);
+    }
+
+    .control-btn.active {
+      background: #66fcf1;
+      color: #0b0c10;
+    }
+
+.dropdown-menu {
+  position: fixed;
+  bottom: auto;
+  left: auto;
+  transform: none;
+  background: rgba(31, 40, 51, 0.98);
+  border: 1px solid #45a29e;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 200px;
+  display: none;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 3000;
+}
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-radius: 5px;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .dropdown-item:active {
+      background: rgba(69, 162, 158, 0.7);
+    }
+
+    .dropdown-item.active {
+      background: rgba(102, 252, 241, 0.3);
+      color: #66fcf1;
+      font-weight: 600;
+    }
+
+    .dropdown-container {
+      position: relative;
+    }
+
+.fullscreen-controls {
+  display: none;
+}
+
+body.in-fullscreen .fullscreen-controls {
+  display: block;
+}
+
+    .error-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: #ff6b6b;
+      font-size: 1.1rem;
+      padding: 20px;
+      background: rgba(31, 40, 51, 0.9);
+      border-radius: 12px;
+      border: 2px solid #ff6b6b;
+      max-width: 80%;
+      z-index: 10;
+    }
+
+    @media (max-width: 768px) {
+      header {
+        padding: 10px 15px;
+      }
+
+      header h1 {
+        font-size: 1rem;
+      }
+
+      header img {
+        height: 35px;
+        width: 35px;
+      }
+
+      header button {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+
+      .controls-overlay {
+        padding: 15px 10px;
+      }
+
+      .control-btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .controls-row {
+        gap: 6px;
+      }
+
+      .control-btn {
+        padding: 7px 10px;
+        font-size: 0.8rem;
+      }
+    }
+
+@media (orientation: landscape) {
+  body.in-fullscreen:not(.manual-portrait) video {
+    object-fit: fill !important;
+  }
+}
+
+    /* Scrollbar styling */
+    .dropdown-menu::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb {
+      background: #45a29e;
+      border-radius: 4px;
+    }
+
+    .dropdown-menu::-webkit-scrollbar-thumb:hover {
+      background: #66fcf1;
+    }
+	
+/* EPG Section Styles */
+.epg-section {
+  flex: 1 1 auto;
+  background: linear-gradient(180deg, #0b0c10 0%, #1a1d29 100%);
+  overflow: hidden;
+  padding: 0 15px 15px 15px;
+  min-height: 0;
+  max-height: calc(60vh - 120px);
+  display: flex;
+  flex-direction: column;
+}
+
+.epg-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(180deg, #0b0c10 0%, #1a1d29 100%);
+  margin-bottom: 15px;
+  padding: 15px 0 10px 0;
+  border-bottom: 2px solid #45a29e;
+}
+
+.epg-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #66fcf1;
+  font-weight: 600;
+}
+
+.epg-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: linear-gradient(180deg, #0b0c10 0%, #1a1d29 100%);
+  margin-bottom: 15px;
+  padding: 15px 0 10px 0;
+  border-bottom: 2px solid #45a29e;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.epg-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #66fcf1;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.epg-date-controls {
+  display: flex;
+  align-items: center;
+}
+
+.epg-date-dropdown {
+  background: rgba(69, 162, 158, 0.9);
+  border: 1px solid #66fcf1;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s;
+  white-space: nowrap;
+  user-select: none;
+  outline: none;
+  min-width: 150px;
+  font-family: "Poppins", sans-serif;
+}
+
+.epg-date-dropdown:hover {
+  background: #66fcf1;
+  color: #0b0c10;
+}
+
+.epg-date-dropdown:focus {
+  border-color: #66fcf1;
+  box-shadow: 0 0 10px rgba(102, 252, 241, 0.3);
+}
+
+.epg-date-dropdown option {
+  background: #1f2833;
+  color: #fff;
+  padding: 8px;
+}
+
+@media (max-width: 768px) {
+  .epg-header h3 {
+    font-size: 1rem;
+  }
+  
+  .epg-date-dropdown {
+    min-width: auto;
+    font-size: 0.8rem;
+    padding: 6px 10px;
+  }
+}
+
+.epg-timeline {
+  display: flex;
+  gap: 15px;
+  overflow-x: auto;
+  overflow-y: auto;
+  padding-bottom: 10px;
+  scroll-snap-type: x proximity;
+  flex: 1;
+  min-height: 0;
+}
+
+.epg-scroll-container {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+
+.epg-scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(69, 162, 158, 0.9);
+  border: 2px solid #66fcf1;
+  color: #fff;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.5rem;
+  font-weight: bold;
+  transition: all 0.3s;
+  z-index: 10;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  user-select: none;
+}
+
+.epg-scroll-btn:hover {
+  background: #66fcf1;
+  color: #0b0c10;
+  transform: translateY(-50%) scale(1.1);
+}
+
+.epg-scroll-btn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.epg-scroll-btn.left {
+  left: 10px;
+}
+
+.epg-scroll-btn.right {
+  right: 10px;
+}
+
+@media (min-width: 1024px) {
+  .epg-scroll-btn {
+    display: flex;
+  }
+}
+
+.epg-loading {
+  text-align: center;
+  color: rgba(255,255,255,0.6);
+  padding: 40px 20px;
+  width: 100%;
+}
+
+.epg-program {
+  min-width: 200px;
+  max-width: 200px;
+  background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  scroll-snap-align: start;
+}
+
+.epg-program:hover {
+  border-color: #45a29e;
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(102, 252, 241, 0.2);
+}
+
+.epg-program.current {
+  border-color: #66fcf1;
+  box-shadow: 0 0 20px rgba(102, 252, 241, 0.4);
+}
+
+.epg-poster {
+  position: relative;
+  width: 100%;
+  padding-bottom: 140%;
+  background: #000;
+  overflow: hidden;
+}
+
+.epg-live-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: #66fcf1;
+  color: #0b0c10;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.epg-poster img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.epg-info {
+  padding: 12px;
+}
+
+.epg-time {
+  font-size: 0.75rem;
+  color: #66fcf1;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.epg-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.3;
+}
+
+.epg-category {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 5px;
+}
+
+.epg-duration {
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.5);
+}
+
+/* EPG Details Modal */
+.epg-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 5000;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.epg-modal.show {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.epg-modal-content {
+  background: linear-gradient(145deg, #1f2833 0%, #2a3441 100%);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.epg-modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #fff;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: all 0.3s;
+  z-index: 1;
+}
+
+.epg-modal-close:hover {
+  background: #66fcf1;
+  color: #0b0c10;
+}
+
+.epg-modal-poster {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  border-radius: 16px 16px 0 0;
+}
+
+.epg-modal-body {
+  padding: 20px;
+}
+
+.epg-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #66fcf1;
+  margin-bottom: 10px;
+}
+
+.epg-modal-meta {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-bottom: 15px;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.7);
+}
+
+.epg-modal-meta span {
+  background: rgba(102, 252, 241, 0.1);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+.epg-modal-description {
+  color: rgba(255,255,255,0.9);
+  line-height: 1.6;
+  margin-bottom: 15px;
+}
+
+.epg-modal-detail {
+  margin-bottom: 12px;
+  color: rgba(255,255,255,0.8);
+  font-size: 0.9rem;
+}
+
+.epg-modal-detail strong {
+  color: #66fcf1;
+  display: block;
+  margin-bottom: 5px;
+}
+
+/* Adjust player wrapper for portrait mode */
+body:not(.in-fullscreen) .player-wrapper {
+  flex: 0 0 auto;
+  height: 40vh;
+  max-height: 40vh;
+}
+
+body:not(.in-fullscreen) .epg-section {
+  display: flex;
+  flex: 1 1 auto; 
+  max-height: calc(60vh - 120px);
+}
+
+body.in-fullscreen .epg-section {
+  display: none;
+}
+
+/* Scrollbar for EPG timeline */
+.epg-timeline::-webkit-scrollbar {
+  height: 8px;
+}
+
+.epg-timeline::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.3);
+  border-radius: 4px;
+}
+
+.epg-timeline::-webkit-scrollbar-thumb {
+  background: #45a29e;
+  border-radius: 4px;
+}
+
+.epg-timeline::-webkit-scrollbar-thumb:hover {
+  background: #66fcf1;
+}
+
+@media (max-width: 768px) {
+  .epg-program {
+    min-width: 160px;
+    max-width: 160px;
+  }
+  
+  .epg-modal-poster {
+    height: 250px;
+  }
+}	
+  </style>
+</head>
+<body>
+<header id="header">
+    <img id="logo" src="" alt="Channel Logo" />
+    <h1 id="title">Loading...</h1>
+    <div class="dropdown-container">
+      <button class="header-settings-btn" id="headerSettingsBtn">⚙️</button>
+      <div class="dropdown-menu" id="headerSettingsMenu">
+        <div class="dropdown-item" id="headerQualityItem">Quality: Auto</div>
+        <div class="dropdown-item" id="headerAudioItem">Audio: Track 1</div>
+      </div>
+      <!-- NEW: Dedicated menus for header -->
+      <div class="dropdown-menu" id="headerQualityMenu"></div>
+      <div class="dropdown-menu" id="headerAudioMenu"></div>
+    </div>
+    <button onclick="window.location.href='index.html'">← Back</button>
+</header>
+
+<div class="player-wrapper" id="playerWrapper">
+  <video id="video" autoplay controls playsinline></video>
+  
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading Stream...</div>
+  </div>
+
+  <div class="error-message" id="error" style="display: none;"></div>
+</div>
+
+<!-- NEW: EPG Section -->
+<div class="epg-section" id="epgSection">
+  <div class="epg-header">
+	<h3>📺 Program Guide</h3>
+	<div class="epg-date-controls">
+		<select class="epg-date-dropdown" id="epgDateDropdown">
+			<option value="0">Today</option>
+		</select>
+	</div>
+  </div>
+  <div class="epg-scroll-container">
+    <button class="epg-scroll-btn left" id="scrollLeftBtn">‹</button>
+    <div class="epg-timeline" id="epgTimeline">
+      <div class="epg-loading">Loading programs...</div>
+    </div>
+    <button class="epg-scroll-btn right" id="scrollRightBtn">›</button>
+  </div>
+</div>
+
+<footer id="controlsFooter">
+  <div class="controls-row"  style="display: none;">
+    <div class="dropdown-container">
+      <button class="control-btn" id="qualityBtn">Quality: Auto</button>
+      <div class="dropdown-menu" id="qualityMenu"></div>
+    </div>
+
+    <div class="dropdown-container">
+      <button class="control-btn" id="audioBtn">Audio Track</button>
+      <div class="dropdown-menu" id="audioMenu"></div>
+    </div>
+
+    <div class="dropdown-container">
+      <button class="control-btn" id="videoBtn">Video Track</button>
+      <div class="dropdown-menu" id="videoMenu"></div>
+    </div>
+
+    <div class="dropdown-container" style="display: none;">
+      <button class="control-btn" id="scaleBtn">Scale: Fit</button>
+      <div class="dropdown-menu" id="scaleMenu">
+        <div class="dropdown-item active" data-scale="fit">Fit</div>
+        <div class="dropdown-item" data-scale="fill">Fill</div>
+        <div class="dropdown-item" data-scale="crop">Stretch</div>
+      </div>
+    </div>
+	
+	<button class="control-btn" id="pipBtn">PiP</button>
+
+    <!-- <button class="control-btn" id="fullscreenBtn">Fullscreen</button> -->
+
+    <div class="dropdown-container fullscreen-controls">
+      <button class="control-btn" id="orientationBtn">Orientation</button>
+      <div class="dropdown-menu" id="orientationMenu">
+        <div class="dropdown-item" data-orientation="any">Any</div>
+        <div class="dropdown-item" data-orientation="landscape">Landscape</div>
+        <div class="dropdown-item" data-orientation="portrait">Portrait</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+  <script>
+    let player;
+    let currentScale = 'crop';
+    let controlsTimeout;
+    let isControlsVisible = false;
+	let preferredLang = null;
+	let currentEPGOffset = 0;  
+	let currentChannelEPG = null;
+
+const languageMap = {
+  'tam': 'Tamil', 'ta': 'Tamil',
+  'tel': 'Telugu', 'te': 'Telugu',
+  'mal': 'Malayalam', 'ml': 'Malayalam',
+  'kan': 'Kannada', 'kn': 'Kannada',
+  'hin': 'Hindi', 'hi': 'Hindi',
+  'ben': 'Bengali', 'bn': 'Bengali',
+  'guj': 'Gujarati', 'gu': 'Gujarati',
+  'ori': 'Odia', 'or': 'Odia',
+  'mar': 'Marathi', 'mr': 'Marathi',
+  'eng': 'English', 'en': 'English',
+  'pan': 'Punjabi', 'pa': 'Punjabi',
+  'und': 'Unknown'
+};
+
+function getLanguageName(code) {
+  if (!code) return 'Unknown';
+  const normalized = code.toLowerCase().substring(0, 3);
+  const twoLetter = code.toLowerCase().substring(0, 2);
+  return languageMap[normalized] || languageMap[twoLetter] || code || 'Unknown';
+}
+
+function getLanguageCode(languageName) {
+  if (!languageName) return null;
+  const nameLower = languageName.toLowerCase();
+  
+  // Find the code that maps to this language name
+  for (const [code, name] of Object.entries(languageMap)) {
+    if (name.toLowerCase() === nameLower) {
+      return code;
+    }
+  }
+  return null;
+}
+	
+function positionDropdown(button, menu) {
+  const buttonRect = button.getBoundingClientRect();
+  const menuHeight = menu.offsetHeight || 300; // estimated height
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  
+  // Calculate available space above and below
+  const spaceAbove = buttonRect.top;
+  const spaceBelow = viewportHeight - buttonRect.bottom;
+  
+  // Position horizontally (centered on button)
+  let left = buttonRect.left + (buttonRect.width / 2) - (menu.offsetWidth / 2);
+  
+  // Keep within viewport horizontally
+  if (left < 10) left = 10;
+  if (left + menu.offsetWidth > viewportWidth - 10) {
+    left = viewportWidth - menu.offsetWidth - 10;
+  }
+  
+  menu.style.left = left + 'px';
+  
+  // Position vertically (prefer above button)
+  if (spaceAbove > menuHeight + 10 || spaceAbove > spaceBelow) {
+    // Show above button
+    menu.style.bottom = (viewportHeight - buttonRect.top + 8) + 'px';
+    menu.style.top = 'auto';
+  } else {
+    // Show below button
+    menu.style.top = (buttonRect.bottom + 8) + 'px';
+    menu.style.bottom = 'auto';
+  }
+}	
+	
+function showFooter() {
+  const footer = document.getElementById('controlsFooter');
+  footer.classList.add('visible');
+  
+  clearTimeout(controlsTimeout);
+  controlsTimeout = setTimeout(() => {
+    hideFooter();
+  }, 4000);
+}
+
+function hideFooter() {
+  const footer = document.getElementById('controlsFooter');
+  
+  // Don't hide if a dropdown is open
+  if (document.querySelector('.dropdown-menu.show')) {
+    showFooter(); // Reset timer
+    return;
+  }
+  
+  footer.classList.remove('visible');
+}
+
+function setupFooterInteraction() {
+  const playerWrapper = document.getElementById('playerWrapper');
+  const footer = document.getElementById('controlsFooter');
+  const video = document.getElementById('video');
+  
+  // Handle clicks on player wrapper (desktop)
+  playerWrapper.addEventListener('click', (e) => {
+    // Close dropdowns when clicking video area
+    closeAllDropdowns();
+    
+    // Then handle fullscreen footer toggle
+    if (document.body.classList.contains('in-fullscreen')) {
+      if (footer.classList.contains('visible')) {
+        hideFooter();
+      } else {
+        showFooter();
+      }
+    }
+  });
+  
+  // Handle clicks directly on video element (desktop)
+  video.addEventListener('click', (e) => {
+    closeAllDropdowns();
+  });
+  
+  // Handle touch events on player wrapper (mobile)
+  playerWrapper.addEventListener('touchstart', (e) => {
+    // Close dropdowns on touch
+    closeAllDropdowns();
+  }, { passive: true });
+  
+  // Handle touch events on video (mobile)
+  video.addEventListener('touchstart', (e) => {
+    // Close dropdowns on touch
+    closeAllDropdowns();
+  }, { passive: true });
+
+  // Keep footer visible when hovering over it (only in fullscreen)
+  footer.addEventListener('mouseenter', () => {
+    if (document.body.classList.contains('in-fullscreen')) {
+      clearTimeout(controlsTimeout);
+    }
+  });
+
+  footer.addEventListener('mouseleave', () => {
+    if (document.body.classList.contains('in-fullscreen')) {
+      showFooter(); // Restart timer
+    }
+  });
+}	
+
+function showError(message) {
+  const loading = document.getElementById('loading');
+  const error = document.getElementById('error');
+  const video = document.getElementById('video');
+  loading.style.display = 'none';
+  if (message) {
+    video.style.display = 'none';
+    error.textContent = message;
+    error.style.display = 'block';
+  } else {
+    error.style.display = 'none';
+  }
+}
+
+    function setupQualityControl() {
+      const qualityBtn = document.getElementById('qualityBtn');
+      const qualityMenu = document.getElementById('qualityMenu');
+
+      if (!player) return;
+
+      const tracks = player.getVariantTracks();
+      const uniqueQualities = [...new Set(tracks.map(t => t.height))].sort((a, b) => b - a);
+
+      qualityMenu.innerHTML = '<div class="dropdown-item active" data-quality="auto">Auto</div>';
+      uniqueQualities.forEach(height => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        item.textContent = `${height}p`;
+        item.dataset.quality = height;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          player.configure({ abr: { enabled: false } });
+          const track = tracks.find(t => t.height === height);
+          if (track) {
+            player.selectVariantTrack(track, true);
+          }
+          qualityBtn.textContent = `Quality: ${height}p`;
+          qualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          qualityMenu.classList.remove('show');
+          //showControls();
+        });
+        qualityMenu.appendChild(item);
+      });
+
+qualityBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  qualityMenu.classList.toggle('show');
+  if (qualityMenu.classList.contains('show')) {
+    positionDropdown(qualityBtn, qualityMenu);
+  }
+});
+
+      qualityMenu.querySelector('[data-quality="auto"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        player.configure({ abr: { enabled: true } });
+        qualityBtn.textContent = 'Quality: Auto';
+        qualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+        qualityMenu.querySelector('[data-quality="auto"]').classList.add('active');
+        qualityMenu.classList.remove('show');
+        //showControls();
+      });
+    }
+
+    function setupAudioControl() {
+      const audioBtn = document.getElementById('audioBtn');
+      const audioMenu = document.getElementById('audioMenu');
+
+      if (!player) return;
+
+      const audioTracks = player.getAudioLanguagesAndRoles();
+
+audioMenu.innerHTML = '';
+audioTracks.forEach((track, index) => {
+  const item = document.createElement('div');
+  item.className = 'dropdown-item';
+  let langName = getLanguageName(track.language);
+  
+  // If unknown, use Track number
+  if (langName === 'Unknown' || langName === track.language) {
+    langName = `Track ${index + 1}`;
+  }
+  
+  item.textContent = langName + (track.role ? ` (${track.role})` : '');
+  if (index === 0) item.classList.add('active');
+  
+  item.addEventListener('click', (e) => {
+    e.stopPropagation();
+    player.selectAudioLanguage(track.language, track.role);
+    audioBtn.textContent = `Audio: ${langName}`;
+    audioMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+    item.classList.add('active');
+    audioMenu.classList.remove('show');
+    if (audioMenu.classList.contains('show')) {
+      positionDropdown(audioBtn, audioMenu);
+    }
+  });
+  audioMenu.appendChild(item);
+});
+
+audioBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  audioMenu.classList.toggle('show');
+  if (audioMenu.classList.contains('show')) {
+    positionDropdown(audioBtn, audioMenu);
+  }
+});
+
+if (audioTracks.length > 0) {
+  let selectedTrackIndex = 0; // Default to first track
+  
+  // If preferred language was passed from index page
+if (preferredLang) {
+  // Convert language name (e.g., "Tamil") to code (e.g., "tam", "ta")
+  const preferredCode = getLanguageCode(preferredLang);
+  
+  const preferredTrackIndex = audioTracks.findIndex(track => {
+    const trackCode = track.language?.toLowerCase() || '';
+    
+    // Match if track code matches any form (2-letter or 3-letter)
+    if (preferredCode) {
+      return trackCode === preferredCode || 
+             trackCode.substring(0, 2) === preferredCode.substring(0, 2);
+    }
+    
+    // Fallback: match by full name
+    const langName = getLanguageName(track.language);
+    return langName.toLowerCase() === preferredLang.toLowerCase();
+  });
+  
+  if (preferredTrackIndex !== -1) {
+    selectedTrackIndex = preferredTrackIndex;
+  }
+}
+  
+  // Select the audio track
+  const selectedTrack = audioTracks[selectedTrackIndex];
+  player.selectAudioLanguage(selectedTrack.language, selectedTrack.role);
+  
+  // Update button text
+  let selectedLangName = getLanguageName(selectedTrack.language);
+  if (selectedLangName === 'Unknown' || selectedLangName === selectedTrack.language) {
+    selectedLangName = `Track ${selectedTrackIndex + 1}`;
+  }
+  audioBtn.textContent = `Audio: ${selectedLangName}`;
+  
+  // Update active state in menu
+  audioMenu.querySelectorAll('.dropdown-item').forEach((item, index) => {
+    item.classList.remove('active');
+    if (index === selectedTrackIndex) {
+      item.classList.add('active');
+    }
+  });
+}
+    }
+
+    function setupVideoTrackControl() {
+      const videoBtn = document.getElementById('videoBtn');
+      const videoMenu = document.getElementById('videoMenu');
+
+      if (!player) return;
+
+      const videoTracks = player.getTextLanguagesAndRoles();
+	  
+	  if (videoTracks.length === 0) {
+    videoBtn.style.display = 'none';
+    return;
+  }
+  
+  // Show button if there are subtitles
+  videoBtn.style.display = 'block';
+
+      videoMenu.innerHTML = '<div class="dropdown-item active" data-track="off">Off</div>';
+      videoTracks.forEach(track => {
+        const item = document.createElement('div');
+        item.className = 'dropdown-item';
+        const langName = getLanguageName(track.language);
+        item.textContent = langName + (track.role ? ` (${track.role})` : '');
+        
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          player.selectTextLanguage(track.language, track.role);
+          player.setTextTrackVisibility(true);
+          videoBtn.textContent = `Subtitles: ${langName}`;
+          videoMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          videoMenu.classList.remove('show');
+          //showControls();
+        });
+        videoMenu.appendChild(item);
+      });
+
+      videoMenu.querySelector('[data-track="off"]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        player.setTextTrackVisibility(false);
+        videoBtn.textContent = 'Subtitles: Off';
+        videoMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+        videoMenu.querySelector('[data-track="off"]').classList.add('active');
+        videoMenu.classList.remove('show');
+        //showControls();
+      });
+
+videoBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  videoMenu.classList.toggle('show');
+  if (videoMenu.classList.contains('show')) {
+    positionDropdown(videoBtn, videoMenu);
+  }
+});
+
+      videoBtn.textContent = 'Subtitles: Off';
+    }
+
+    function setupScaleControl() {
+      const video = document.getElementById('video');
+      const scaleBtn = document.getElementById('scaleBtn');
+      const scaleMenu = document.getElementById('scaleMenu');
+
+// Set initial scale to fit
+video.className = 'fit';
+scaleBtn.textContent = 'Scale: Fit';
+currentScale = 'fit';
+
+      scaleMenu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const scale = item.dataset.scale;
+          video.className = scale;
+          currentScale = scale;
+          
+          // Mark body if manually set to portrait mode
+          if (scale === 'fit' || scale === 'fill') {
+            document.body.classList.add('manual-portrait');
+          } else {
+            document.body.classList.remove('manual-portrait');
+          }
+          
+          const label = scale.charAt(0).toUpperCase() + scale.slice(1);
+          scaleBtn.textContent = `Scale: ${label}`;
+          scaleMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          scaleMenu.classList.remove('show');
+          //showControls();
+        });
+      });
+
+scaleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  scaleMenu.classList.toggle('show');
+  if (scaleMenu.classList.contains('show')) {
+    positionDropdown(scaleBtn, scaleMenu);
+  }
+});
+    }
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('show');
+      });
+    }
+
+function setupFullscreen() {
+  const playerWrapper = document.getElementById('playerWrapper');
+  const video = document.getElementById('video');
+  const header = document.getElementById('header');
+
+document.addEventListener('fullscreenchange', () => {
+  const footer = document.getElementById('controlsFooter');
+  
+  if (document.fullscreenElement) {
+    // Entering fullscreen
+    playerWrapper.classList.add('fullscreen');
+    document.body.classList.add('in-fullscreen');
+    header.classList.add('hidden');
+    video.className = 'crop';
+    currentScale = 'crop';
+    footer.classList.remove('visible'); // Hide footer in fullscreen initially
+  } else {
+    // Exiting fullscreen - use requestAnimationFrame for smooth transition
+    requestAnimationFrame(() => {
+      playerWrapper.classList.remove('fullscreen');
+      document.body.classList.remove('in-fullscreen');
+      header.classList.remove('hidden');
+      video.className = 'fit';
+      currentScale = 'fit';
+      footer.classList.remove('visible');
+      
+      // Force immediate style recalculation
+      footer.offsetHeight; // Trigger reflow
+    });
+  }
+});
+
+  // Auto fullscreen on landscape orientation (mobile)
+  if (screen.orientation) {
+    screen.orientation.addEventListener('change', async () => {
+      if (screen.orientation.type.includes('landscape')) {
+        if (!document.fullscreenElement) {
+          try {
+            await playerWrapper.requestFullscreen();
+          } catch (err) {
+            console.error('Auto fullscreen error:', err);
+          }
+        }
+      }
+    });
+  }
+}
+
+function setupVideoControls() {
+  const video = document.getElementById('video');
+  const playerWrapper = document.getElementById('playerWrapper');
+  
+  // Disable pause on single click
+  video.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Don't pause - do nothing on single click
+  });
+  
+  // Double click for fullscreen
+  video.addEventListener('dblclick', async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!document.fullscreenElement) {
+      try {
+        await playerWrapper.requestFullscreen();
+      } catch (err) {
+        console.error('Fullscreen error:', err);
+      }
+    } else {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
+        console.error('Exit fullscreen error:', err);
+      }
+    }
+  });
+  
+  // Disable seek on double-click (prevent default video behavior)
+  video.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+  });
+}
+
+    function setupOrientation() {
+      const orientationBtn = document.getElementById('orientationBtn');
+      const orientationMenu = document.getElementById('orientationMenu');
+
+      if (!screen.orientation) {
+        orientationBtn.style.display = 'none';
+        return;
+      }
+
+      orientationMenu.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const orientation = item.dataset.orientation;
+          try {
+            if (orientation === 'any') {
+              await screen.orientation.unlock();
+            } else {
+              await screen.orientation.lock(orientation);
+            }
+            orientationBtn.textContent = `Orientation: ${item.textContent}`;
+            orientationMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+            item.classList.add('active');
+            orientationMenu.classList.remove('show');
+            //showControls();
+          } catch (err) {
+            console.log('Orientation lock not supported:', err);
+          }
+        });
+      });
+
+orientationBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  closeAllDropdowns();
+  orientationMenu.classList.toggle('show');
+  if (orientationMenu.classList.contains('show')) {
+    positionDropdown(orientationBtn, orientationMenu);
+  }
+});
+    }
+	
+function setupPictureInPicture() {
+  const pipBtn = document.getElementById('pipBtn');
+  const video = document.getElementById('video');
+
+  if (!document.pictureInPictureEnabled) {
+    pipBtn.style.display = 'none';
+    return;
+  }
+
+  pipBtn.addEventListener('click', async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        pipBtn.textContent = 'PiP';
+      } else {
+        // Force cover/fill mode before entering PiP to avoid letterboxing
+        const originalFit = video.className;
+        video.className = 'fill'; // or 'crop'
+        
+        await video.requestPictureInPicture();
+        pipBtn.textContent = 'Exit PiP';
+      }
+    } catch (err) {
+      console.error('PiP error:', err);
+    }
+  });
+
+  video.addEventListener('enterpictureinpicture', () => {
+    pipBtn.textContent = 'Exit PiP';
+  });
+
+  video.addEventListener('leavepictureinpicture', () => {
+    pipBtn.textContent = 'PiP';
+    // Restore original fit mode
+    video.className = currentScale;
+  });
+}
+
+// Close dropdowns when clicking outside or on video area
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.dropdown-container')) {
+    closeAllDropdowns();
+  }
+});
+	
+function replaceDomainIfNeeded(originalUrl, cookieLinkDomain) {
+  if (!cookieLinkDomain) return originalUrl;
+  
+  try {
+    const originalUrlObj = new URL(originalUrl);
+    const cookieDomainObj = new URL(cookieLinkDomain);
+    
+    // IMPORTANT: Only replace if the original URL is a Jio CDN domain
+    const isJioCDN = originalUrlObj.hostname.includes('cdn.jio.com');
+    
+    if (!isJioCDN) {
+      console.log('Not a Jio CDN link, skipping domain replacement');
+      return originalUrl; // Don't touch non-Jio links
+    }
+    
+    // Compare base domains (protocol + hostname)
+    if (originalUrlObj.origin !== cookieDomainObj.origin) {
+      // Replace the domain but keep the path
+      console.log(`Replacing domain: ${originalUrlObj.origin} → ${cookieDomainObj.origin}`);
+      return cookieLinkDomain + originalUrlObj.pathname + originalUrlObj.search;
+    }
+  } catch (err) {
+    console.warn('Error comparing domains:', err);
+  }
+  
+  return originalUrl;
+}	
+
+function setupHeaderSettings() {
+  const settingsBtn = document.getElementById('headerSettingsBtn');
+  const settingsMenu = document.getElementById('headerSettingsMenu');
+  const qualityItem = document.getElementById('headerQualityItem');
+  const audioItem = document.getElementById('headerAudioItem');
+  const headerQualityMenu = document.getElementById('headerQualityMenu');
+  const headerAudioMenu = document.getElementById('headerAudioMenu');
+
+  if (!player) return;
+
+  // Populate quality menu
+  const tracks = player.getVariantTracks();
+  const uniqueQualities = [...new Set(tracks.map(t => t.height))].sort((a, b) => b - a);
+  
+  headerQualityMenu.innerHTML = '<div class="dropdown-item active" data-quality="auto">Auto</div>';
+  uniqueQualities.forEach(height => {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    item.textContent = `${height}p`;
+    item.dataset.quality = height;
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      player.configure({ abr: { enabled: false } });
+      const track = tracks.find(t => t.height === height);
+      if (track) {
+        player.selectVariantTrack(track, true);
+      }
+      qualityItem.textContent = `Quality: ${height}p`;
+      headerQualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      closeAllDropdowns();
+    });
+    headerQualityMenu.appendChild(item);
+  });
+
+  headerQualityMenu.querySelector('[data-quality="auto"]').addEventListener('click', (e) => {
+    e.stopPropagation();
+    player.configure({ abr: { enabled: true } });
+    qualityItem.textContent = 'Quality: Auto';
+    headerQualityMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+    headerQualityMenu.querySelector('[data-quality="auto"]').classList.add('active');
+    closeAllDropdowns();
+  });
+
+  // Populate audio menu
+  const audioTracks = player.getAudioLanguagesAndRoles();
+  headerAudioMenu.innerHTML = '';
+  
+  audioTracks.forEach((track, index) => {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item';
+    let langName = getLanguageName(track.language);
+    
+    if (langName === 'Unknown' || langName === track.language) {
+      langName = `Track ${index + 1}`;
+    }
+    
+    item.textContent = langName + (track.role ? ` (${track.role})` : '');
+    
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      player.selectAudioLanguage(track.language, track.role);
+      audioItem.textContent = `Audio: ${langName}`;
+      headerAudioMenu.querySelectorAll('.dropdown-item').forEach(el => el.classList.remove('active'));
+      item.classList.add('active');
+      closeAllDropdowns();
+    });
+    headerAudioMenu.appendChild(item);
+  });
+
+  // Auto-select preferred language
+  if (audioTracks.length > 0) {
+    let selectedTrackIndex = 0;
+    
+    if (preferredLang) {
+      const preferredCode = getLanguageCode(preferredLang);
+      const preferredTrackIndex = audioTracks.findIndex(track => {
+        const trackCode = track.language?.toLowerCase() || '';
+        if (preferredCode) {
+          return trackCode === preferredCode || 
+                 trackCode.substring(0, 2) === preferredCode.substring(0, 2);
+        }
+        const langName = getLanguageName(track.language);
+        return langName.toLowerCase() === preferredLang.toLowerCase();
+      });
+      
+      if (preferredTrackIndex !== -1) {
+        selectedTrackIndex = preferredTrackIndex;
+      }
+    }
+    
+    const selectedTrack = audioTracks[selectedTrackIndex];
+    player.selectAudioLanguage(selectedTrack.language, selectedTrack.role);
+    
+    let selectedLangName = getLanguageName(selectedTrack.language);
+    if (selectedLangName === 'Unknown' || selectedLangName === selectedTrack.language) {
+      selectedLangName = `Track ${selectedTrackIndex + 1}`;
+    }
+    audioItem.textContent = `Audio: ${selectedLangName}`;
+    
+    headerAudioMenu.querySelectorAll('.dropdown-item').forEach((item, index) => {
+      item.classList.remove('active');
+      if (index === selectedTrackIndex) {
+        item.classList.add('active');
+      }
+    });
+  }
+
+  // Settings button click
+  settingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllDropdowns();
+    settingsMenu.classList.toggle('show');
+    if (settingsMenu.classList.contains('show')) {
+      positionDropdown(settingsBtn, settingsMenu);
+    }
+  });
+
+  // Quality item click
+  qualityItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllDropdowns();
+    headerQualityMenu.classList.add('show');
+    positionDropdown(settingsBtn, headerQualityMenu);
+  });
+
+  // Audio item click
+  audioItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeAllDropdowns();
+    headerAudioMenu.classList.add('show');
+    positionDropdown(settingsBtn, headerAudioMenu);
+  });
+}
+
+    async function initPlayer() {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+	  preferredLang = params.get('lang');
+	  
+	  let channel = null;
+      
+      try {
+		const isLocalhost = window.location.hostname === 'localhost' || 
+							window.location.hostname === '127.0.0.1' || 
+							window.location.hostname === '';
+
+		const url = isLocalhost 
+		  ? 'live.json'
+		  : 'https://pangufiles.pages.dev/projects/tv/live.json';
+
+		const res = await fetch(url);
+        let channels = await res.json();
+        channels = channels.filter(ch => ch.name && ch.link);
+
+        function normalizeName(name) {
+          return name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+        }
+
+        channel = channels.find(ch => normalizeName(ch.name) === id);
+
+function isCookieValid(cookieString) {
+  try {
+    const expMatch = cookieString.match(/exp=(\d+)/);
+    if (!expMatch) return false;
+    
+    const expiryTime = parseInt(expMatch[1]) * 1000;
+    const currentTime = Date.now();
+    
+    return currentTime < expiryTime;
+  } catch (err) {
+    console.warn('Error parsing cookie:', err);
+    return false;
+  }
+}
+
+let freshCookie = '';
+let cookieLinkDomain = ''; 
+
+// Using multi-source worker (best cookie automatically selected)
+try {
+  const res = await fetch('https://tataplay-worker.porus-in2012.workers.dev/best-cookie');
+  if (res.ok) {
+    const data = await res.json();
+    if (data.cookie && data.valid) {
+      freshCookie = data.cookie.trim();
+      cookieLinkDomain = data.linkDomain || ''; 
+      console.log(`Using ${data.source} cookie (expires: ${data.expiryIST}) - VALID`);
+      console.log(`Cookie domain: ${cookieLinkDomain}`);
+    }
+  }
+} catch (err) {
+  console.warn('Multi-source worker failed:', err);
+}
+
+console.log('Cookie in use:', freshCookie);		
+
+        if (!channel) {
+          showError('Channel not found. Please go back and select a valid channel.');
+          return;
+        }
+
+        document.getElementById('title').innerText = channel.name;
+        document.getElementById('logo').src = channel.logo || '';
+		document.title = channel.name + ' - Live TV';
+
+        const video = document.getElementById('video');
+        player = new shaka.Player();
+		await player.attach(video);
+        window.player = player;
+		
+// Optimize for low-latency live streaming (like the working player)
+player.configure({
+  streaming: {
+    lowLatencyMode: true,              // CRITICAL: Enables aggressive segment fetching
+    bufferingGoal: 15,                 // Lower buffer = faster start
+    rebufferingGoal: 2,                // Quick recovery
+    bufferBehind: 15,                  // Less memory usage
+    segmentPrefetchLimit: 2,           // Prefetch 2 segments ahead
+    retryParameters: {
+      timeout: 10000,                  // Shorter timeout
+      maxAttempts: 5,                  // More retry attempts
+      baseDelay: 300,                  // Fast retry
+      backoffFactor: 1.2,              // Gentle backoff
+      fuzzFactor: 0.5
+    },
+    startAtSegmentBoundary: false,     // Start immediately
+    ignoreTextStreamFailures: true,    // Don't fail on subtitle errors
+    alwaysStreamText: false,
+    useNativeHlsOnSafari: true         // Use native player on Safari
+  },
+  manifest: {
+    retryParameters: {
+      timeout: 8000,                   // Match segment timeout
+      maxAttempts: 3,
+      baseDelay: 300,
+      backoffFactor: 1.2,
+      fuzzFactor: 0.5
+    },
+    defaultPresentationDelay: 10,      // 10 second delay for live
+    availabilityWindowOverride: NaN,
+    disableAudio: false,
+    disableVideo: false,
+    disableText: true
+  }
+  // NO ABR configuration - let Shaka use its defaults
+});
+
+player.getNetworkingEngine().registerRequestFilter((type, request) => {
+  if (
+    type === shaka.net.NetworkingEngine.RequestType.SEGMENT ||
+    type === shaka.net.NetworkingEngine.RequestType.MANIFEST
+  ) {
+    // ONLY add cookie to Jio CDN domains
+    const isJioDomain = request.uris[0].includes('cdn.jio.com');
+    
+    if (freshCookie && isJioDomain) {
+        const sep = request.uris[0].includes("?") ? "&" : "?";
+        if (!request.uris[0].includes("__hdnea__")) {
+            request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
+        }
+    }
+  }
+});
+
+        if (channel.drmLicense && channel.drmLicense.includes(':')) {
+          const [keyId, key] = channel.drmLicense.split(':');
+          player.configure({
+            drm: { clearKeys: { [keyId.trim()]: key.trim() } },
+          });
+        }
+
+let streamUrl = channel.link.trim();
+streamUrl = replaceDomainIfNeeded(streamUrl, cookieLinkDomain);
+console.log('Final stream URL:', streamUrl);
+
+// ONLY add cookie to Jio CDN domains
+const isJioDomain = streamUrl.includes('cdn.jio.com');
+if (freshCookie && isJioDomain) {
+    const sep = streamUrl.includes("?") ? "&" : "?";
+    streamUrl += sep + freshCookie.replace(/^[?&]/, "");
+}
+
+await player.load(streamUrl);
+
+const loading = document.getElementById('loading');
+const error = document.getElementById('error');
+loading.style.display = "none";
+error.style.display = "none";
+error.textContent = "";
+
+setupQualityControl();
+setupAudioControl();
+setupVideoTrackControl();
+setupScaleControl();
+setupFullscreen();
+setupVideoControls();
+setupOrientation();
+setupFooterInteraction();
+setupPictureInPicture();
+setupEPGScrollButtons();
+setupDateNavigation();
+setupHeaderSettings();
+
+console.log("Playing:", streamUrl);
+        
+      } catch (err) {
+        console.error("Error loading stream:", err);
+        showError('Failed to load stream. Please try again later.');
+      } finally {
+        // Always handle EPG regardless of video load success/failure
+        if (channel && channel.epg) {
+          currentEPGOffset = 0;
+          currentChannelEPG = channel.epg;
+          loadEPG(channel.epg, 0);
+        } else if (channel) {
+          // No EPG available for this channel
+          const epgTimeline = document.getElementById('epgTimeline');
+          if (epgTimeline) {
+            epgTimeline.innerHTML = '<div class="epg-loading">EPG data not available for this channel</div>';
+          }
+        }
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", initPlayer);
+	
+function setupEPGScrollButtons() {
+  const scrollLeftBtn = document.getElementById('scrollLeftBtn');
+  const scrollRightBtn = document.getElementById('scrollRightBtn');
+  const epgTimeline = document.getElementById('epgTimeline');
+  
+  if (!scrollLeftBtn || !scrollRightBtn || !epgTimeline) return;
+  
+  scrollLeftBtn.addEventListener('click', () => {
+    epgTimeline.scrollBy({
+      left: -300,
+      behavior: 'smooth'
+    });
+  });
+  
+  scrollRightBtn.addEventListener('click', () => {
+    epgTimeline.scrollBy({
+      left: 300,
+      behavior: 'smooth'
+    });
+  });
+}
+
+function setupDateNavigation() {
+  const dropdown = document.getElementById('epgDateDropdown');
+  
+  if (!dropdown) return;
+  
+  // Populate dropdown with dates
+  function populateDropdown() {
+    dropdown.innerHTML = '';
+    
+    const today = new Date();
+    
+    // Add past 7 days
+    for (let i = -7; i <= 6; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      
+      const option = document.createElement('option');
+      option.value = i;
+      
+      // Format date
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      if (i === 0) {
+        option.textContent = `Today (${dayName}, ${monthDay})`;
+      } else if (i === -1) {
+        option.textContent = `Yesterday (${dayName}, ${monthDay})`;
+      } else if (i === 1) {
+        option.textContent = `Tomorrow (${dayName}, ${monthDay})`;
+      } else if (i < 0) {
+        option.textContent = `${Math.abs(i)} days ago (${dayName}, ${monthDay})`;
+      } else {
+        option.textContent = `In ${i} days (${dayName}, ${monthDay})`;
+      }
+      
+      dropdown.appendChild(option);
+    }
+    
+    // Set current selection
+    dropdown.value = currentEPGOffset;
+  }
+  
+  // Handle dropdown change
+  dropdown.addEventListener('change', async (e) => {
+    const newOffset = parseInt(e.target.value);
+    if (!isNaN(newOffset) && currentChannelEPG) {
+      currentEPGOffset = newOffset;
+      await loadEPG(currentChannelEPG, currentEPGOffset);
+    }
+  });
+  
+  populateDropdown();
+}	
+	
+// EPG Functions
+async function loadEPG(epgUrl, offset = 0) {
+  const epgTimeline = document.getElementById('epgTimeline');
+  
+  // Store the base EPG URL for date navigation
+  if (!currentChannelEPG) {
+    currentChannelEPG = epgUrl;
+  }
+  
+  // Show loading state
+  epgTimeline.innerHTML = '<div class="epg-loading">Loading programs...</div>';
+  
+  try {
+    // Modify URL to include offset
+    let modifiedUrl = epgUrl;
+    
+    // Replace existing offset parameter or add new one
+    if (modifiedUrl.includes('offset=')) {
+      modifiedUrl = modifiedUrl.replace(/offset=-?\d+/, `offset=${offset}`);
+    } else {
+      const separator = modifiedUrl.includes('?') ? '&' : '?';
+      modifiedUrl += `${separator}offset=${offset}`;
+    }
+    
+    // Force bypass cache with timestamp
+    const separator = modifiedUrl.includes('?') ? '&' : '?';
+    const cacheBustedUrl = `${modifiedUrl}${separator}_t=${Date.now()}`;
+    
+    const response = await fetch(cacheBustedUrl, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache'
+      }
+    });
+    const data = await response.json();
+    
+    if (data.epg && data.epg.length > 0) {
+      renderEPG(data.epg);
+      
+      // Update dropdown to reflect current offset
+      const dropdown = document.getElementById('epgDateDropdown');
+      if (dropdown) {
+        dropdown.value = offset;
+      }
+    } else {
+      epgTimeline.innerHTML = '<div class="epg-loading">No program data available</div>';
+    }
+  } catch (error) {
+    console.error('Error loading EPG:', error);
+    epgTimeline.innerHTML = '<div class="epg-loading">Failed to load program guide</div>';
+  }
+}
+
+function renderEPG(programs) {
+  const epgTimeline = document.getElementById('epgTimeline');
+  const now = Date.now();
+  
+  epgTimeline.innerHTML = '';
+  
+  // NEW: Find current program index BEFORE rendering
+  let currentIndex = programs.findIndex(program => {
+    return now >= program.startEpoch && now <= program.endEpoch;
+  });
+  
+  // If no current program found, find the next upcoming one
+  if (currentIndex === -1) {
+    currentIndex = programs.findIndex(program => program.startEpoch > now);
+  }
+  
+  // If still not found, default to first program
+  if (currentIndex === -1) {
+    currentIndex = 0;
+  }
+  
+  // CHANGED: Added index parameter to forEach
+  programs.forEach((program, index) => {
+    const startTime = program.startEpoch;
+    const endTime = program.endEpoch;
+    const isCurrent = now >= startTime && now <= endTime;
+    
+    const programCard = document.createElement('div');
+    programCard.className = `epg-program ${isCurrent ? 'current' : ''}`;
+    
+    const posterUrl = program.episodePoster 
+      ? `https://jiotvimages.cdn.jio.com/dare_images/shows/${program.episodePoster}`
+      : 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 100 140\'%3E%3Crect fill=\'%231f2833\' width=\'100\' height=\'140\'/%3E%3Ctext x=\'50\' y=\'70\' font-family=\'Arial\' font-size=\'30\' fill=\'%2366fcf1\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3ETV%3C/text%3E%3C/svg%3E';
+    
+    // CHANGED: Added live badge inside HTML
+    programCard.innerHTML = `
+      <div class="epg-poster">
+        ${isCurrent ? '<div class="epg-live-badge">▶ LIVE NOW</div>' : ''}
+        <img src="${posterUrl}" alt="${program.showname}" loading="lazy">
+      </div>
+      <div class="epg-info">
+        <div class="epg-time">${program.showtime} - ${program.endtime}</div>
+        <div class="epg-title">${program.showname}</div>
+      </div>
+    `;
+    
+    programCard.addEventListener('click', () => showEPGDetails(program));
+    
+    epgTimeline.appendChild(programCard);
+  });
+  
+  // CHANGED: Scroll to current program immediately (no animation)
+  const currentCard = epgTimeline.children[currentIndex];
+  if (currentCard) {
+    currentCard.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+  }
+}
+
+function showEPGDetails(program) {
+  // Create modal if doesn't exist
+  let modal = document.getElementById('epgModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'epgModal';
+    modal.className = 'epg-modal';
+    document.body.appendChild(modal);
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('show');
+      }
+    });
+  }
+  
+  const posterUrl = program.episodePoster 
+    ? `https://jiotvimages.cdn.jio.com/dare_images/shows/${program.episodePoster}`
+    : '';
+  
+  const genres = Array.isArray(program.showGenre) ? program.showGenre.join(', ') : program.showGenre || 'N/A';
+  
+  modal.innerHTML = `
+    <div class="epg-modal-content">
+      <button class="epg-modal-close" onclick="document.getElementById('epgModal').classList.remove('show')">×</button>
+      ${posterUrl ? `<img src="${posterUrl}" alt="${program.showname}" class="epg-modal-poster">` : ''}
+      <div class="epg-modal-body">
+        <h2 class="epg-modal-title">${program.showname}</h2>
+        <div class="epg-modal-meta">
+          <span>⏰ ${program.showtime} - ${program.endtime}</span>
+          <span>⏱️ ${program.duration} mins</span>
+          <span>📺 ${program.showCategory || 'Program'}</span>
+        </div>
+        ${program.description ? `<p class="epg-modal-description">${program.description}</p>` : ''}
+        ${program.director ? `<div class="epg-modal-detail"><strong>Director:</strong> ${program.director}</div>` : ''}
+        ${program.starCast ? `<div class="epg-modal-detail"><strong>Cast:</strong> ${program.starCast}</div>` : ''}
+        <div class="epg-modal-detail"><strong>Genre:</strong> ${genres}</div>
+        ${program.pcr ? `<div class="epg-modal-detail"><strong>Rating:</strong> ${program.pcr}</div>` : ''}
+      </div>
+    </div>
+  `;
+  
+  modal.classList.add('show');
+}	
+
+// Disable context menu (right-click) everywhere
+document.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+// Disable long press context menu on touch devices
+document.addEventListener('touchstart', (e) => {
+  if (e.touches.length > 1) {
+    e.preventDefault();
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', (e) => {
+  const now = Date.now();
+  if (window.lastTouchEnd && (now - window.lastTouchEnd) < 300) {
+    e.preventDefault();
+  }
+  window.lastTouchEnd = now;
+}, { passive: false });
+
+// Disable text selection on drag
+document.addEventListener('selectstart', (e) => {
+  // Allow selection only in input/textarea elements
+  if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});
+
+// Disable copy/paste operations
+document.addEventListener('copy', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+document.addEventListener('cut', (e) => {
+  e.preventDefault();
+  return false;
+});
+
+document.addEventListener('paste', (e) => {
+  e.preventDefault();
+  return false;
+});
+  </script>
+</body>
+</html>
