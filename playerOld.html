@@ -1483,7 +1483,33 @@ document.addEventListener('click', (e) => {
   }
 });
 	
-
+function replaceDomainIfNeeded(originalUrl, cookieLinkDomain) {
+  if (!cookieLinkDomain) return originalUrl;
+  
+  try {
+    const originalUrlObj = new URL(originalUrl);
+    const cookieDomainObj = new URL(cookieLinkDomain);
+    
+    // IMPORTANT: Only replace if the original URL is a Jio CDN domain
+    const isJioCDN = originalUrlObj.hostname.includes('cdn.jio.com');
+    
+    if (!isJioCDN) {
+      console.log('Not a Jio CDN link, skipping domain replacement');
+      return originalUrl; // Don't touch non-Jio links
+    }
+    
+    // Compare base domains (protocol + hostname)
+    if (originalUrlObj.origin !== cookieDomainObj.origin) {
+      // Replace the domain but keep the path
+      console.log(`Replacing domain: ${originalUrlObj.origin} → ${cookieDomainObj.origin}`);
+      return cookieLinkDomain + originalUrlObj.pathname + originalUrlObj.search;
+    }
+  } catch (err) {
+    console.warn('Error comparing domains:', err);
+  }
+  
+  return originalUrl;
+}	
 
 function setupHeaderSettings() {
   const settingsBtn = document.getElementById('headerSettingsBtn');
@@ -1633,8 +1659,8 @@ function setupHeaderSettings() {
 							window.location.hostname === '';
 
 		const url = isLocalhost 
-		  ? 'img.json'
-		  : 'https://pangufiles.pages.dev/projects/tv/img.json';
+		  ? 'live.json'
+		  : 'https://pangufiles.pages.dev/projects/tv/live.json';
 
 		const res = await fetch(url);
         let channels = await res.json();
@@ -1646,7 +1672,41 @@ function setupHeaderSettings() {
 
         channel = channels.find(ch => normalizeName(ch.name) === id);
 
+function isCookieValid(cookieString) {
+  try {
+    const expMatch = cookieString.match(/exp=(\d+)/);
+    if (!expMatch) return false;
+    
+    const expiryTime = parseInt(expMatch[1]) * 1000;
+    const currentTime = Date.now();
+    
+    return currentTime < expiryTime;
+  } catch (err) {
+    console.warn('Error parsing cookie:', err);
+    return false;
+  }
+}
 
+let freshCookie = '';
+let cookieLinkDomain = ''; 
+
+// Using multi-source worker (best cookie automatically selected)
+try {
+  const res = await fetch('https://tataplay-worker.porus-in2012.workers.dev/best-cookie');
+  if (res.ok) {
+    const data = await res.json();
+    if (data.cookie && data.valid) {
+      freshCookie = data.cookie.trim();
+      cookieLinkDomain = data.linkDomain || ''; 
+      console.log(`Using ${data.source} cookie (expires: ${data.expiryIST}) - VALID`);
+      console.log(`Cookie domain: ${cookieLinkDomain}`);
+    }
+  }
+} catch (err) {
+  console.warn('Multi-source worker failed:', err);
+}
+
+console.log('Cookie in use:', freshCookie);		
 
         if (!channel) {
           showError('Channel not found. Please go back and select a valid channel.');
@@ -1699,7 +1759,22 @@ player.configure({
   // NO ABR configuration - let Shaka use its defaults
 });
 
-
+player.getNetworkingEngine().registerRequestFilter((type, request) => {
+  if (
+    type === shaka.net.NetworkingEngine.RequestType.SEGMENT ||
+    type === shaka.net.NetworkingEngine.RequestType.MANIFEST
+  ) {
+    // ONLY add cookie to Jio CDN domains
+    const isJioDomain = request.uris[0].includes('cdn.jio.com');
+    
+    if (freshCookie && isJioDomain) {
+        const sep = request.uris[0].includes("?") ? "&" : "?";
+        if (!request.uris[0].includes("__hdnea__")) {
+            request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
+        }
+    }
+  }
+});
 
         if (channel.drmLicense && channel.drmLicense.includes(':')) {
           const [keyId, key] = channel.drmLicense.split(':');
@@ -1709,7 +1784,15 @@ player.configure({
         }
 
 let streamUrl = channel.link.trim();
+streamUrl = replaceDomainIfNeeded(streamUrl, cookieLinkDomain);
 console.log('Final stream URL:', streamUrl);
+
+// ONLY add cookie to Jio CDN domains
+const isJioDomain = streamUrl.includes('cdn.jio.com');
+if (freshCookie && isJioDomain) {
+    const sep = streamUrl.includes("?") ? "&" : "?";
+    streamUrl += sep + freshCookie.replace(/^[?&]/, "");
+}
 
 await player.load(streamUrl);
 
