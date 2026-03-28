@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script>
+    const path = window.location.pathname;
+
+    if (path.startsWith("/player-hls")) {
+      window.location.href = "/player-hls.html";
+    } else if (path.startsWith("/player")) {
+      window.location.href = "/player.html";
+    } else {
+      // fallback
+      window.location.href = "/";
+    }
+  </script>
+</head>
+<body></body>
+</html>
