@@ -1659,8 +1659,8 @@ function setupHeaderSettings() {
 							window.location.hostname === '';
 
 		const url = isLocalhost 
-		  ? 'live.json'
-		  : 'https://pangufiles.pages.dev/projects/tv/live.json';
+		  ? 'live_web.json'
+		  : 'https://pangufiles.pages.dev/projects/tv/live_web.json';
 
 		const res = await fetch(url);
         let channels = await res.json();
@@ -1767,16 +1767,12 @@ player.getNetworkingEngine().registerRequestFilter((type, request) => {
     // ONLY add cookie to Jio CDN domains
     const isJioDomain = request.uris[0].includes('cdn.jio.com');
     
-    //if (freshCookie && isJioDomain) {
-      //  const sep = request.uris[0].includes("?") ? "&" : "?";
-        //if (!request.uris[0].includes("__hdnea__")) {
-          //  request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
-        //}
-    //}
-	if (freshCookie && isJioDomain) {
-		request.headers['Cookie'] = freshCookie.replace(/^[?&]/, '');
-		request.allowCrossSiteCredentials = true;
-	}
+    if (freshCookie && isJioDomain) {
+        const sep = request.uris[0].includes("?") ? "&" : "?";
+        if (!request.uris[0].includes("__hdnea__")) {
+            request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
+        }
+    }
   }
 });
 
@@ -1792,11 +1788,11 @@ streamUrl = replaceDomainIfNeeded(streamUrl, cookieLinkDomain);
 console.log('Final stream URL:', streamUrl);
 
 // ONLY add cookie to Jio CDN domains
-//const isJioDomain = streamUrl.includes('cdn.jio.com');
-//if (freshCookie && isJioDomain) {
- //   const sep = streamUrl.includes("?") ? "&" : "?";
-   // streamUrl += sep + freshCookie.replace(/^[?&]/, "");
-//}
+const isJioDomain = streamUrl.includes('cdn.jio.com');
+if (freshCookie && isJioDomain) {
+    const sep = streamUrl.includes("?") ? "&" : "?";
+    streamUrl += sep + freshCookie.replace(/^[?&]/, "");
+}
 
 await player.load(streamUrl);
 

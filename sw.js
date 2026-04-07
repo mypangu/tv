@@ -4,7 +4,7 @@
 // ===============================
 
 // Change this whenever you update UI files
-const CACHE_VERSION = "0704262350";
+const CACHE_VERSION = "0704262359";
 const STATIC_CACHE = "pangu-static-" + CACHE_VERSION;
 
 // Static assets ONLY (never include JSON or video files)
