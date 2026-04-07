@@ -1767,12 +1767,15 @@ player.getNetworkingEngine().registerRequestFilter((type, request) => {
     // ONLY add cookie to Jio CDN domains
     const isJioDomain = request.uris[0].includes('cdn.jio.com');
     
-    if (freshCookie && isJioDomain) {
-        const sep = request.uris[0].includes("?") ? "&" : "?";
-        if (!request.uris[0].includes("__hdnea__")) {
-            request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
-        }
-    }
+    //if (freshCookie && isJioDomain) {
+      //  const sep = request.uris[0].includes("?") ? "&" : "?";
+        //if (!request.uris[0].includes("__hdnea__")) {
+          //  request.uris[0] += sep + freshCookie.replace(/^[?&]/, "");
+        //}
+    //}
+	if (freshCookie && isJioDomain) {
+		request.headers['Cookie'] = freshCookie.replace(/^[?&]/, '');
+	}
   }
 });
 
@@ -1788,11 +1791,11 @@ streamUrl = replaceDomainIfNeeded(streamUrl, cookieLinkDomain);
 console.log('Final stream URL:', streamUrl);
 
 // ONLY add cookie to Jio CDN domains
-const isJioDomain = streamUrl.includes('cdn.jio.com');
-if (freshCookie && isJioDomain) {
-    const sep = streamUrl.includes("?") ? "&" : "?";
-    streamUrl += sep + freshCookie.replace(/^[?&]/, "");
-}
+//const isJioDomain = streamUrl.includes('cdn.jio.com');
+//if (freshCookie && isJioDomain) {
+ //   const sep = streamUrl.includes("?") ? "&" : "?";
+   // streamUrl += sep + freshCookie.replace(/^[?&]/, "");
+//}
 
 await player.load(streamUrl);
 

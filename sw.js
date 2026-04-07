@@ -4,7 +4,7 @@
 // ===============================
 
 // Change this whenever you update UI files
-const CACHE_VERSION = "2803262330";
+const CACHE_VERSION = "0704262330";
 const STATIC_CACHE = "pangu-static-" + CACHE_VERSION;
 
 // Static assets ONLY (never include JSON or video files)
@@ -15,6 +15,7 @@ const STATIC_FILES = [
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./404.html"
   // Add CSS / JS if you create separate files
 ];
 
