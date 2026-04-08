@@ -1040,8 +1040,8 @@ playerWrapper.addEventListener('touchend', async (e) => {
                             window.location.hostname === '127.0.0.1';
 
         const url = isLocalhost 
-          ? 'live.json'
-          : 'https://pangufiles.pages.dev/projects/tv/live.json';
+          ? 'live_web.json'
+          : 'https://pangufiles.pages.dev/projects/tv/live_web.json';
 
         const res = await fetch(url);
         let channels = await res.json();
