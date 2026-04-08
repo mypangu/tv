@@ -513,8 +513,8 @@ async function loadChannels(forceRefresh = false) {
                         window.location.hostname === '';
     
     const url = isLocalhost 
-	  ? 'live.json' + (forceRefresh ? '?t=' + Date.now() : '')
-	  : 'https://pangufiles.pages.dev/projects/tv/live.json' + (forceRefresh ? '?t=' + Date.now() : '');
+	  ? 'live_web.json' + (forceRefresh ? '?t=' + Date.now() : '')
+	  : 'https://pangufiles.pages.dev/projects/tv/live_web.json' + (forceRefresh ? '?t=' + Date.now() : '');
 
 	const res = await fetch(url, { cache: forceRefresh ? 'reload' : 'default' });
 	const channelsData = await res.json();
