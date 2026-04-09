@@ -89,6 +89,67 @@
       transform: translateY(-2px);
       box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
     }
+	
+.header-audio-btn {
+  background: rgba(69, 162, 158, 0.9);
+  border: 1px solid #66fcf1;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  font-size: 1.1rem;
+  margin-right: 10px;
+  display: none; /* Hidden until tracks are available */
+  position: relative;
+}
+
+.header-audio-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 252, 241, 0.4);
+}
+
+.header-audio-dropdown {
+  display: none;
+  position: fixed;
+  background: rgba(31, 40, 51, 0.98);
+  border: 1px solid #45a29e;
+  border-radius: 8px;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  min-width: 180px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  z-index: 3000;
+}
+
+.header-audio-dropdown.show {
+  display: block;
+}
+
+.header-audio-dropdown-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  color: #ccc;
+  font-family: "Poppins", sans-serif;
+  white-space: nowrap;
+}
+
+.header-audio-dropdown-item:hover {
+  background: rgba(69, 162, 158, 0.4);
+  color: #66fcf1;
+}
+
+.header-audio-dropdown-item.active {
+  background: rgba(102, 252, 241, 0.3);
+  color: #66fcf1;
+  font-weight: 600;
+}	
 
     .player-wrapper {
       flex: 0 0 auto;
@@ -594,7 +655,11 @@
   <header id="header">
     <img id="logo" src="" alt="Channel Logo" />
     <h1 id="title">Loading...</h1>
-    <button onclick="window.location.href='index.html'">← Back</button>
+<div style="position:relative;">
+  <button class="header-audio-btn" id="headerAudioBtn">🎵 Audio</button>
+  <div class="header-audio-dropdown" id="headerAudioDropdown"></div>
+</div>
+<button onclick="window.location.href='index.html'">← Back</button>
   </header>
 
   <div class="player-wrapper" id="playerWrapper">
@@ -1436,6 +1501,57 @@ hls.on(Hls.Events.MANIFEST_PARSED, function () {
     clickToPlay: false,
     keyboard: { focused: true, global: true }
   });
+
+  // ===== HEADER AUDIO BUTTON =====
+  setTimeout(() => {
+    const audioTracks = hls.audioTracks;
+    const headerBtn = document.getElementById('headerAudioBtn');
+    const headerDropdown = document.getElementById('headerAudioDropdown');
+
+    if (!headerBtn || !headerDropdown) return;
+
+    if (audioTracks && audioTracks.length > 1) {
+      headerBtn.style.display = 'inline-block';
+      headerDropdown.innerHTML = '';
+
+      audioTracks.forEach((track, index) => {
+        const label = getLanguageName(track.lang) || track.name || `Track ${index + 1}`;
+        const item = document.createElement('div');
+        item.className = 'header-audio-dropdown-item' + (index === hls.audioTrack ? ' active' : '');
+        item.textContent = label;
+        item.addEventListener('click', (e) => {
+          e.stopPropagation();
+          hls.audioTrack = index;
+          headerDropdown.querySelectorAll('.header-audio-dropdown-item').forEach(el => el.classList.remove('active'));
+          item.classList.add('active');
+          headerBtn.textContent = `🎵 ${label}`;
+          headerDropdown.classList.remove('show');
+        });
+        headerDropdown.appendChild(item);
+      });
+
+      headerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        headerDropdown.classList.toggle('show');
+        if (headerDropdown.classList.contains('show')) {
+          const rect = headerBtn.getBoundingClientRect();
+          headerDropdown.style.top = (rect.bottom + 8) + 'px';
+          headerDropdown.style.left = Math.max(10, rect.right - headerDropdown.offsetWidth || rect.left) + 'px';
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#headerAudioBtn') && !e.target.closest('#headerAudioDropdown')) {
+          headerDropdown.classList.remove('show');
+        }
+      });
+
+    } else {
+      headerBtn.style.display = 'none';
+    }
+  }, 700);
+  // ===== END HEADER AUDIO BUTTON =====  
             
             const tryPlay = async () => {
               try {
