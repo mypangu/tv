@@ -94,15 +94,16 @@
   background: rgba(69, 162, 158, 0.9);
   border: 1px solid #66fcf1;
   color: #fff;
-  padding: 10px 14px;
+  padding: 10px 18px;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.3s;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   margin-right: 10px;
-  display: none; /* Hidden until tracks are available */
+  display: none;
   position: relative;
+  line-height: 1;
 }
 
 .header-audio-btn:hover {
@@ -1529,6 +1530,27 @@ hls.on(Hls.Events.MANIFEST_PARSED, function () {
         });
         headerDropdown.appendChild(item);
       });
+	  
+	  // Auto-select preferred language
+      if (preferredLang && audioTracks.length > 0) {
+        const preferred = audioTracks.findIndex(track => {
+          const langName = getLanguageName(track.lang || '');
+          const code = (track.lang || '').toLowerCase();
+          return langName.toLowerCase() === preferredLang.toLowerCase() ||
+                 code === preferredLang.toLowerCase() ||
+                 code.substring(0, 2) === preferredLang.toLowerCase().substring(0, 2);
+        });
+        if (preferred !== -1) {
+          hls.audioTrack = preferred;
+          // Update active state in menu
+          headerDropdown.querySelectorAll('.header-audio-dropdown-item').forEach((el, i) => {
+            el.classList.toggle('active', i === preferred);
+          });
+          // Update button label
+          const prefLabel = getLanguageName(audioTracks[preferred].lang) || audioTracks[preferred].name || `Track ${preferred + 1}`;
+          headerBtn.textContent = `🎵 ${prefLabel}`;
+        }
+      }	  
 
       headerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
